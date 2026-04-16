@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log"
@@ -10,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	goqrcode "github.com/skip2/go-qrcode"
+
 	"github.com/libi/tfo/internal/channel"
 	"github.com/libi/tfo/internal/channel/wechat"
 	"github.com/libi/tfo/internal/config"
@@ -65,6 +68,8 @@ func New(deps *Dependencies) *gin.Engine {
 		api.POST("/wechat/start", startWeChat(deps))
 		api.POST("/wechat/stop", stopWeChat(deps))
 		api.GET("/wechat/qrcode", getWeChatQRCode(deps))
+		api.POST("/wechat/qrcode/poll", pollWeChatQRCode(deps))
+		api.POST("/wechat/qrcode/login", loginWithQRCode(deps))
 	}
 
 	// Serve embedded frontend static files (production mode).
@@ -331,17 +336,108 @@ func getWeChatQRCode(deps *Dependencies) gin.HandlerFunc {
 		if deps.WeChatAdapter == nil {
 			deps.WeChatAdapter = wechat.NewWeChatAdapter(deps.Config.WeChat)
 		}
-		baseURL := deps.Config.WeChat.BaseURL
+		baseURL := c.Query("baseUrl")
 		if baseURL == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "wechat baseUrl not configured"})
-			return
+			baseURL = deps.Config.WeChat.BaseURL
+		}
+		if baseURL == "" {
+			baseURL = "https://ilinkai.weixin.qq.com"
 		}
 		qr, err := deps.WeChatAdapter.GetQRCode(c.Request.Context(), baseURL)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, qr)
+
+		// Generate QR code image from the URL so frontend can display it directly.
+		imgContent := ""
+		if qr.QRCodeImgContent != "" {
+			png, err := goqrcode.Encode(qr.QRCodeImgContent, goqrcode.Medium, 256)
+			if err == nil {
+				imgContent = "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"qrcode":           qr.QRCode,
+			"qrcodeImgContent": imgContent,
+		})
+	}
+}
+
+func pollWeChatQRCode(deps *Dependencies) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			BaseURL string `json:"baseUrl"`
+			QRCode  string `json:"qrcode"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil || req.QRCode == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "qrcode is required"})
+			return
+		}
+		if req.BaseURL == "" {
+			req.BaseURL = deps.Config.WeChat.BaseURL
+		}
+		if req.BaseURL == "" {
+			req.BaseURL = "https://ilinkai.weixin.qq.com"
+		}
+
+		if deps.WeChatAdapter == nil {
+			deps.WeChatAdapter = wechat.NewWeChatAdapter(deps.Config.WeChat)
+		}
+		status, err := deps.WeChatAdapter.PollQRStatus(c.Request.Context(), req.BaseURL, req.QRCode)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"status":   status.Status,
+			"botToken": status.BotToken,
+			"botId":    status.ILinkBotID,
+			"baseUrl":  status.BaseURL,
+		})
+	}
+}
+
+func loginWithQRCode(deps *Dependencies) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			BotToken string `json:"botToken"`
+			BotID    string `json:"botId"`
+			BaseURL  string `json:"baseUrl"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil || req.BotToken == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "botToken is required"})
+			return
+		}
+
+		// Update config with the new credentials
+		deps.Config.WeChat.Token = req.BotToken
+		if req.BaseURL != "" {
+			deps.Config.WeChat.BaseURL = req.BaseURL
+		}
+		deps.Config.WeChat.Enabled = true
+
+		// Persist config
+		if deps.ConfigSaver != nil {
+			if err := deps.ConfigSaver(deps.Config); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save config: " + err.Error()})
+				return
+			}
+		}
+
+		// Re-init and start adapter
+		if deps.WeChatInit != nil {
+			deps.Receiver, deps.WeChatAdapter = deps.WeChatInit()
+		}
+		if deps.WeChatAdapter != nil {
+			if err := deps.WeChatAdapter.Start(c.Request.Context()); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start wechat: " + err.Error()})
+				return
+			}
+		}
+
+		c.JSON(http.StatusOK, gin.H{"status": "connected"})
 	}
 }
 

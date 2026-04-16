@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -18,7 +19,7 @@ import (
 
 const (
 	channelVersion         = "1.0.0"
-	defaultBotType         = "0"
+	defaultBotType         = "3"
 	defaultLongPollTimeout = 35 * time.Second
 	defaultAPITimeout      = 15 * time.Second
 )
@@ -167,6 +168,19 @@ func (c *Client) FetchQRCode(ctx context.Context, apiBaseURL string) (*QRCodeRes
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("weixin qrcode %d: %s", resp.StatusCode, string(raw))
 	}
+	log.Printf("[wechat] FetchQRCode raw response: %s", string(raw))
+	// First check for API-level errors (ret != 0)
+	var envelope struct {
+		Ret    int    `json:"ret"`
+		ErrMsg string `json:"err_msg,omitempty"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err == nil && envelope.Ret != 0 {
+		msg := envelope.ErrMsg
+		if msg == "" {
+			msg = fmt.Sprintf("unknown error (ret=%d)", envelope.Ret)
+		}
+		return nil, fmt.Errorf("weixin qrcode: %s", msg)
+	}
 	var qr QRCodeResponse
 	if err := json.Unmarshal(raw, &qr); err != nil {
 		return nil, fmt.Errorf("weixin qrcode decode: %w", err)
@@ -200,6 +214,18 @@ func (c *Client) PollQRStatus(ctx context.Context, apiBaseURL, qrcode string) (*
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("weixin qrstatus %d: %s", resp.StatusCode, string(raw))
+	}
+	// Check for API-level errors
+	var envelope struct {
+		Ret    int    `json:"ret"`
+		ErrMsg string `json:"err_msg,omitempty"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err == nil && envelope.Ret != 0 {
+		msg := envelope.ErrMsg
+		if msg == "" {
+			msg = fmt.Sprintf("unknown error (ret=%d)", envelope.Ret)
+		}
+		return nil, fmt.Errorf("weixin qrstatus: %s", msg)
 	}
 	var status QRStatusResponse
 	if err := json.Unmarshal(raw, &status); err != nil {

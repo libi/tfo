@@ -168,8 +168,34 @@ export async function stopWeChat(): Promise<void> {
     if (!res.ok) throw new Error(await res.text());
 }
 
-export async function getWeChatQRCode(): Promise<{ qrcode: string; qrcode_img_content: string }> {
-    const res = await fetch(`${API_BASE}/wechat/qrcode`);
+export async function getWeChatQRCode(baseUrl?: string): Promise<{ qrcode: string; qrcodeImgContent: string }> {
+    const params = baseUrl ? `?baseUrl=${encodeURIComponent(baseUrl)}` : '';
+    const res = await fetch(`${API_BASE}/wechat/qrcode${params}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+export async function pollWeChatQRCode(qrcode: string, baseUrl?: string): Promise<{
+    status: string;
+    botToken?: string;
+    botId?: string;
+    baseUrl?: string;
+}> {
+    const res = await fetch(`${API_BASE}/wechat/qrcode/poll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qrcode, baseUrl }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+export async function loginWithQRCode(botToken: string, botId: string, baseUrl: string): Promise<{ status: string }> {
+    const res = await fetch(`${API_BASE}/wechat/qrcode/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ botToken, botId, baseUrl }),
+    });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
 }

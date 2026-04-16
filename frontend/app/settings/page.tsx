@@ -285,9 +285,7 @@ export default function SettingsPage() {
                                 {t('settingsWeChatEnabled')}
                             </label>
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <InputField label={t('settingsWeChatBaseUrl')} value={draftWechat.baseUrl} onChange={v => updateWechatField('baseUrl', v)} placeholder="http://..." />
                                 <InputField label={t('settingsWeChatToken')} value={draftWechat.token} onChange={v => updateWechatField('token', v)} type="password" />
-                                <InputField label={t('settingsWeChatCdnBaseUrl')} value={draftWechat.cdnBaseUrl || ''} onChange={v => updateWechatField('cdnBaseUrl', v)} placeholder="https://..." />
                             </div>
                             <label className="flex items-center gap-3 text-sm text-gray-700">
                                 <input
