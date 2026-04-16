@@ -1,0 +1,9 @@
+node_modules
+frontend/out
+!frontend/out/.gitkeep
+dist
+.build
+frontend/.next
+*.syso
+.vscode
+.DS_Store

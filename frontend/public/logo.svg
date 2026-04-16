@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <filter id="s" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="1" dy="3" stdDeviation="5" flood-color="#00000025"/>
+    </filter>
+  </defs>
+
+  <!-- 白色封面 -->
+  <rect width="512" height="512" rx="96" fill="#FFFFFF"/>
+
+  <!-- 淡横线 -->
+  <line x1="50" y1="120" x2="462" y2="120" stroke="#ECECEC" stroke-width="1.5"/>
+  <line x1="50" y1="200" x2="462" y2="200" stroke="#ECECEC" stroke-width="1.5"/>
+  <line x1="50" y1="280" x2="462" y2="280" stroke="#ECECEC" stroke-width="1.5"/>
+  <line x1="50" y1="360" x2="462" y2="360" stroke="#ECECEC" stroke-width="1.5"/>
+  <line x1="50" y1="440" x2="462" y2="440" stroke="#ECECEC" stroke-width="1.5"/>
+
+  <!-- 竖笔画 - 蓝 / 绿 便利贴 -->
+  <g transform="rotate(-3 135 146)" filter="url(#s)">
+    <rect x="90" y="56" width="90" height="180" rx="4" fill="#4285F4"/>
+    <polygon points="180,56 180,86 150,56" fill="#3367D6" opacity="0.5"/>
+  </g>
+  <g transform="rotate(2 140 358)" filter="url(#s)">
+    <rect x="95" y="260" width="90" height="196" rx="4" fill="#34A853"/>
+    <polygon points="185,260 185,290 155,260" fill="#2D9248" opacity="0.5"/>
+  </g>
+
+  <!-- 上横笔画 - 红 / 黄 便利贴 -->
+  <g transform="rotate(2.5 260 91)" filter="url(#s)">
+    <rect x="190" y="50" width="140" height="82" rx="4" fill="#EA4335"/>
+    <polygon points="330,50 330,76 304,50" fill="#C5221F" opacity="0.5"/>
+  </g>
+  <g transform="rotate(-4 385 99)" filter="url(#s)">
+    <rect x="330" y="58" width="110" height="82" rx="4" fill="#FBBC05"/>
+    <polygon points="440,58 440,84 414,58" fill="#E0A800" opacity="0.5"/>
+  </g>
+
+  <!-- 中横笔画 - 蓝 便利贴 -->
+  <g transform="rotate(-3 270 287)" filter="url(#s)">
+    <rect x="190" y="248" width="160" height="78" rx="4" fill="#4285F4"/>
+    <polygon points="350,248 350,274 324,248" fill="#3367D6" opacity="0.5"/>
+  </g>
+</svg>

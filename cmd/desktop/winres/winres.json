@@ -1,0 +1,24 @@
+{
+    "RT_GROUP_ICON": {
+        "APP": {
+            "0000": [
+                "icon.png"
+            ]
+        }
+    },
+    "RT_MANIFEST": {
+        "#1": {
+            "0409": {
+                "identity": {
+                    "name": "com.libi.tfo-desktop",
+                    "version": "1.0.0.0"
+                },
+                "description": "TFO Desktop",
+                "minimum-os": "win10",
+                "execution-level": "asInvoker",
+                "dpi-awareness": "system",
+                "use-common-controls": true
+            }
+        }
+    }
+}
