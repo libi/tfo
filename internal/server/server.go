@@ -69,7 +69,6 @@ func New(deps *Dependencies) *gin.Engine {
 	// Serve embedded frontend static files (production mode).
 	// In dev mode FrontendFS is nil and frontend runs separately via `npm run dev`.
 	if deps.FrontendFS != nil {
-		fileServer := http.FileServer(http.FS(deps.FrontendFS))
 		r.NoRoute(func(c *gin.Context) {
 			path := c.Request.URL.Path
 			// Don't serve static files for API routes
@@ -77,16 +76,18 @@ func New(deps *Dependencies) *gin.Engine {
 				c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 				return
 			}
-			// Try to serve the exact file first
-			f, err := deps.FrontendFS.Open(strings.TrimPrefix(path, "/"))
-			if err == nil {
-				f.Close()
-				fileServer.ServeHTTP(c.Writer, c.Request)
-				return
+			trimmedPath := strings.TrimPrefix(path, "/")
+			trimmedPath = strings.TrimSuffix(trimmedPath, "/")
+			if trimmedPath != "" {
+				// Try to serve the exact file first, but avoid handing directories
+				// to the static handler because directory/index redirects break SPA routing.
+				if info, err := fs.Stat(deps.FrontendFS, trimmedPath); err == nil && !info.IsDir() {
+					http.ServeFileFS(c.Writer, c.Request, deps.FrontendFS, trimmedPath)
+					return
+				}
 			}
 			// Fallback to index.html for client-side routing
-			c.Request.URL.Path = "/index.html"
-			fileServer.ServeHTTP(c.Writer, c.Request)
+			http.ServeFileFS(c.Writer, c.Request, deps.FrontendFS, "index.html")
 		})
 	}
 

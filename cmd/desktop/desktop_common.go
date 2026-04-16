@@ -47,7 +47,7 @@ var translations = map[Lang]map[string]string{
 		"button.submit":       "Save",
 	},
 	LangZH: {
-		"placeholder.capture": "记录一个碎片想法…",
+		"placeholder.capture": "输入一些碎片想法…",
 		"button.submit":       "保存",
 	},
 }

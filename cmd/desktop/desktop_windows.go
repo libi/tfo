@@ -3,19 +3,31 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"sync/atomic"
 	"syscall"
+	"time"
+	"unsafe"
 
 	"github.com/energye/systray"
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	wopts "github.com/wailsapp/wails/v2/pkg/options/windows"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed icons/icon.ico
 var windowsIcon []byte
+
+//go:embed popup.html
+var popupHTML []byte
 
 // ---------------------------------------------------------------------------
 // Platform helpers
@@ -28,24 +40,20 @@ func openBrowser(url string) error {
 }
 
 func detectSystemLang() Lang {
-	for _, key := range []string{"LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"} {
-		if val := os.Getenv(key); val != "" {
+	for _, k := range []string{"LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"} {
+		if val := os.Getenv(k); val != "" {
 			if strings.HasPrefix(strings.ToLower(val), "zh") {
 				return LangZH
 			}
 			return LangEN
 		}
 	}
-
 	kernel32 := syscall.NewLazyDLL("kernel32.dll")
 	proc := kernel32.NewProc("GetUserDefaultUILanguage")
 	langID, _, _ := proc.Call()
-
-	const langChinese = 0x04
-	if langID&0x3FF == langChinese {
+	if langID&0x3FF == 0x04 {
 		return LangZH
 	}
-
 	return LangEN
 }
 
@@ -53,16 +61,27 @@ func detectSystemLang() Lang {
 // System tray
 // ---------------------------------------------------------------------------
 
-// serverReady tracks whether the backend is reachable (shared across goroutines).
 var serverReady atomic.Bool
 
-// popupActive prevents opening multiple popups simultaneously.
-var popupActive atomic.Bool
+// popupCtx holds the Wails context, set once during OnStartup.
+var popupCtx context.Context
+
+// popupVisible tracks whether the popup is currently shown.
+var popupVisible atomic.Bool
+
+// showGuardUntil prevents hidePopup from firing right after showPopup.
+var showGuardUntil atomic.Int64
 
 func runDesktop(state *appState) {
+	// Pre-load Wails popup in background goroutine (hidden).
+	go preloadPopup(state)
+
 	systray.Run(func() {
 		onReady(state)
 	}, func() {
+		if popupCtx != nil {
+			wailsRuntime.Quit(popupCtx)
+		}
 		state.stopServer()
 	})
 }
@@ -72,201 +91,175 @@ func onReady(state *appState) {
 	systray.SetTitle("TFO")
 	systray.SetTooltip("TFO")
 
-	// Left-click tray icon → show native capture popup (matches macOS behaviour).
 	systray.SetOnClick(func(menu systray.IMenu) {
-		go showNotePopup(state)
+		go togglePopup()
 	})
 
 	openDashboardWhenReady(state, desktopStartupReadyTimeout, false, func(url string) {
 		serverReady.Store(true)
 		systray.SetTooltip("TFO — " + state.Addr())
+		if popupCtx != nil {
+			wailsRuntime.EventsEmit(popupCtx, "server-ready")
+		}
 	}, func(err error) {
 		systray.SetTooltip("TFO — Error")
 	})
 }
 
-// ---------------------------------------------------------------------------
-// Native WPF popup (PowerShell, no CGO / no WebView)
-// ---------------------------------------------------------------------------
-
-// showNotePopup launches a native WPF popup for quick note capture on Windows.
-func showNotePopup(state *appState) {
-	if !popupActive.CompareAndSwap(false, true) {
+// togglePopup shows or hides the popup depending on current state.
+func togglePopup() {
+	if popupVisible.Load() {
+		hidePopup()
 		return
 	}
-	defer popupActive.Store(false)
+	showPopup()
+}
 
-	statusColor := "Orange"
-	if serverReady.Load() {
-		statusColor = "#34C759"
-	}
-
-	script := strings.NewReplacer(
-		"{{STATUS_COLOR}}", statusColor,
-		"{{DASHBOARD_URL}}", state.DashboardURL(),
-		"{{PLACEHOLDER}}", T("placeholder.capture"),
-		"{{BTN_SUBMIT}}", T("button.submit"),
-	).Replace(wpfPopupScript)
-
-	tmpFile, err := os.CreateTemp("", "tfo-popup-*.ps1")
-	if err != nil {
-		slog.Warn("popup: failed to create temp file", "error", err)
-		_ = openBrowser(state.DashboardURL())
+// showPopup positions the pre-loaded window near the tray and shows it.
+func showPopup() {
+	ctx := popupCtx
+	if ctx == nil {
 		return
 	}
-	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
+	// Set guard: ignore hidePopup calls for 600ms after show.
+	showGuardUntil.Store(time.Now().Add(600 * time.Millisecond).UnixMilli())
+	popupVisible.Store(true)
 
-	// UTF-8 BOM so PowerShell reads CJK characters correctly.
-	_, _ = tmpFile.Write([]byte{0xEF, 0xBB, 0xBF})
-	_, _ = tmpFile.WriteString(script)
-	tmpFile.Close()
+	posX, posY := getTrayPosition()
+	wailsRuntime.WindowSetPosition(ctx, posX, posY)
+	wailsRuntime.WindowShow(ctx)
+	wailsRuntime.WindowSetAlwaysOnTop(ctx, true)
+	// Reset textarea and focus via JS.
+	wailsRuntime.EventsEmit(ctx, "popup-show")
+}
 
-	cmd := exec.Command("powershell.exe",
-		"-NoProfile", "-NonInteractive",
-		"-ExecutionPolicy", "Bypass",
-		"-File", tmpPath,
-	)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	output, err := cmd.Output()
-	if err != nil {
-		slog.Debug("popup closed without input", "error", err)
+// hidePopup hides the window without destroying it.
+func hidePopup() {
+	ctx := popupCtx
+	if ctx == nil {
 		return
 	}
-
-	result := strings.TrimSpace(string(output))
-	switch {
-	case result == "::QUIT::":
-		systray.Quit()
-	case result == "::SETTINGS::":
-		_ = openBrowser(state.DashboardURL())
-	case result == "":
-		// closed without input
-	default:
-		if err := submitNote(state, result); err != nil {
-			slog.Error("submit note failed", "error", err)
-		} else {
-			slog.Info("note submitted via popup")
-		}
+	// Respect show guard to avoid hiding immediately after showing.
+	if time.Now().UnixMilli() < showGuardUntil.Load() {
+		return
+	}
+	if popupVisible.CompareAndSwap(true, false) {
+		wailsRuntime.WindowHide(ctx)
 	}
 }
 
-// wpfPopupScript is a PowerShell script that shows a WPF popup matching the
-// macOS native popover: borderless rounded window with a text area, status dot,
-// settings/quit/submit buttons. Positioned near the taskbar tray area.
-const wpfPopupScript = `
-Add-Type -AssemblyName PresentationFramework,PresentationCore,WindowsBase
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+// ---------------------------------------------------------------------------
+// PopupAPI — bound to Wails, called from JS frontend
+// ---------------------------------------------------------------------------
 
-[xml]$xaml = @"
-<Window
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Width="376" Height="300"
-    WindowStartupLocation="Manual"
-    ResizeMode="NoResize"
-    ShowInTaskbar="False"
-    Topmost="True"
-    WindowStyle="None"
-    AllowsTransparency="True"
-    Background="Transparent">
-  <Border Background="White" BorderBrush="#D0D0D0" BorderThickness="1"
-          CornerRadius="8" ClipToBounds="True">
-    <Grid>
-      <Grid.RowDefinitions>
-        <RowDefinition Height="*"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="44"/>
-      </Grid.RowDefinitions>
+// PopupAPI is the Go backend for the capture popup.
+type PopupAPI struct {
+	state *appState
+}
 
-      <!-- Text area with placeholder overlay -->
-      <Grid Grid.Row="0" Margin="16,16,16,8">
-        <TextBox x:Name="tb" AcceptsReturn="True" TextWrapping="Wrap"
-                 BorderThickness="0" FontSize="14" FontFamily="Segoe UI"
-                 VerticalScrollBarVisibility="Auto" Background="Transparent"
-                 Padding="2"/>
-        <TextBlock x:Name="ph" Text="{{PLACEHOLDER}}"
-                   FontSize="14" FontFamily="Segoe UI"
-                   Foreground="#AAAAAA" IsHitTestVisible="False"
-                   Margin="4,6,0,0"/>
-      </Grid>
+// InitResult is sent to JS on page load.
+type InitResult struct {
+	Placeholder string `json:"placeholder"`
+	Submit      string `json:"submit"`
+	Ready       bool   `json:"ready"`
+}
 
-      <!-- Separator -->
-      <Rectangle Grid.Row="1" Fill="#EBEBEB" Height="1"/>
+// Init returns i18n strings and server readiness.
+func (p *PopupAPI) Init() InitResult {
+	return InitResult{
+		Placeholder: T("placeholder.capture"),
+		Submit:      T("button.submit"),
+		Ready:       serverReady.Load(),
+	}
+}
 
-      <!-- Bottom bar -->
-      <Grid Grid.Row="2" Margin="16,0">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <Ellipse Width="8" Height="8" Fill="{{STATUS_COLOR}}"/>
-          <Button x:Name="gear" Content="&#x2699;" Margin="12,0,0,0"
-                  Width="28" Height="28" BorderThickness="0"
-                  Background="Transparent" FontSize="15"
-                  Foreground="#666666" Cursor="Hand"
-                  ToolTip="Settings"/>
-          <Button x:Name="pwr" Content="&#x23FB;" Margin="6,0,0,0"
-                  Width="28" Height="28" BorderThickness="0"
-                  Background="Transparent" FontSize="14"
-                  Foreground="#666666" Cursor="Hand"
-                  ToolTip="Quit"/>
-        </StackPanel>
-        <Button x:Name="send" Content="&#x27A4;"
-                HorizontalAlignment="Right" VerticalAlignment="Center"
-                Width="28" Height="28" BorderThickness="0"
-                Background="Transparent" FontSize="16"
-                Foreground="#444444" Cursor="Hand"
-                ToolTip="{{BTN_SUBMIT}}"/>
-      </Grid>
-    </Grid>
-  </Border>
-</Window>
-"@
+// Submit posts the note and hides the popup on success.
+func (p *PopupAPI) Submit(content string) error {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return nil
+	}
+	if err := submitNote(p.state, content); err != nil {
+		slog.Error("submit note failed", "error", err)
+		return err
+	}
+	slog.Info("note submitted via popup")
+	hidePopup()
+	return nil
+}
 
-$reader = [System.Xml.XmlNodeReader]::new($xaml)
-$window = [System.Windows.Markup.XamlReader]::Load($reader)
+// OpenSettings opens the dashboard and hides the popup.
+func (p *PopupAPI) OpenSettings() {
+	_ = openBrowser(p.state.DashboardURL())
+	hidePopup()
+}
 
-$tb = $window.FindName("tb")
-$ph = $window.FindName("ph")
+// HidePopup hides the popup window (called from JS on blur / Escape).
+func (p *PopupAPI) HidePopup() {
+	hidePopup()
+}
 
-# Position near the system tray (bottom-right of work area).
-$wa = [System.Windows.SystemParameters]::WorkArea
-$window.Left = $wa.Right  - $window.Width  - 12
-$window.Top  = $wa.Bottom - $window.Height - 12
+// Quit closes the entire app.
+func (p *PopupAPI) Quit() {
+	hidePopup()
+	go systray.Quit()
+}
 
-# Drag the borderless window by its background.
-$window.Add_MouseLeftButtonDown({
-    param($sender, $e)
-    if ($e.ChangedButton -eq "Left") { $window.DragMove() }
-})
+// ---------------------------------------------------------------------------
+// Wails popup window (pre-loaded, hidden)
+// ---------------------------------------------------------------------------
 
-# Close on deactivate (click outside), mirroring macOS popover behaviour.
-$window.Add_Deactivated({ $window.Close() })
+func getTrayPosition() (x, y int) {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	proc := user32.NewProc("SystemParametersInfoW")
+	type sRECT struct{ Left, Top, Right, Bottom int32 }
+	var wa sRECT
+	proc.Call(0x0030, 0, uintptr(unsafe.Pointer(&wa)), 0)
+	const winW, winH, margin = 360, 280, 12
+	return int(wa.Right) - winW - margin, int(wa.Bottom) - winH - margin
+}
 
-# Placeholder visibility.
-$tb.Add_TextChanged({
-    if ($tb.Text.Length -gt 0) { $ph.Visibility = "Collapsed" }
-    else                       { $ph.Visibility = "Visible"   }
-})
+func preloadPopup(state *appState) {
+	api := &PopupAPI{state: state}
 
-$script:result = ""
+	err := wails.Run(&options.App{
+		Title:             "TFO",
+		Width:             360,
+		Height:            280,
+		MinWidth:          360,
+		MinHeight:         280,
+		MaxWidth:          360,
+		MaxHeight:         280,
+		Frameless:         true,
+		AlwaysOnTop:       true,
+		StartHidden:       true,
+		HideWindowOnClose: true,
+		AssetServer: &assetserver.Options{
+			Handler: popupHandler{},
+		},
+		OnStartup: func(ctx context.Context) {
+			popupCtx = ctx
+		},
+		OnDomReady: func(ctx context.Context) {
+			slog.Info("popup webview preloaded")
+		},
+		Bind: []interface{}{api},
+		Windows: &wopts.Options{
+			WebviewIsTransparent: false,
+			WindowIsTranslucent:  false,
+			DisableWindowIcon:    true,
+		},
+	})
+	if err != nil {
+		slog.Error("wails popup error", "error", err)
+	}
+}
 
-$window.FindName("send").Add_Click({
-    $script:result = $tb.Text
-    $window.Close()
-})
+// popupHandler serves the embedded popup.html for all requests.
+type popupHandler struct{}
 
-$window.FindName("gear").Add_Click({
-    $script:result = "::SETTINGS::"
-    $window.Close()
-})
-
-$window.FindName("pwr").Add_Click({
-    $script:result = "::QUIT::"
-    $window.Close()
-})
-
-# Focus the text box on open.
-$window.Add_ContentRendered({ $tb.Focus() | Out-Null })
-
-$window.ShowDialog() | Out-Null
-Write-Output $script:result
-`
+func (popupHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(popupHTML)
+}

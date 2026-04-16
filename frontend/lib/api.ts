@@ -34,6 +34,25 @@ export interface SearchResult {
     fragments: string[];
 }
 
+export interface WeChatConfig {
+    enabled: boolean;
+    baseUrl: string;
+    token: string;
+    cdnBaseUrl?: string;
+    autoConnect: boolean;
+    pollTimeoutSeconds: number;
+    reconnectIntervalSec: number;
+}
+
+export interface AppConfig {
+    dataDir: string;
+    uiLanguage?: string;
+    hotkeyQuickCapture: string;
+    wechat: WeChatConfig;
+    indexRebuildOnStart: boolean;
+    titleMinContentLength: number;
+}
+
 // --- Notes ---
 
 export async function createNote(content: string): Promise<Fragment> {
@@ -99,6 +118,24 @@ export async function getHeatmap(month: string): Promise<HeatmapEntry[]> {
 
 export async function searchNotes(query: string, limit = 20): Promise<{ results: SearchResult[]; total: number }> {
     const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+// --- Config ---
+
+export async function getConfig(): Promise<AppConfig> {
+    const res = await fetch(`${API_BASE}/config`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+export async function updateConfig(config: AppConfig): Promise<AppConfig> {
+    const res = await fetch(`${API_BASE}/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+    });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
 }

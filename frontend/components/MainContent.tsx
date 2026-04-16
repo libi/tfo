@@ -2,18 +2,21 @@ import React, { useState } from 'react';
 import { Search, Send } from 'lucide-react';
 import type { Fragment } from '@/types';
 import { FragmentCard } from './FragmentCard';
+import { useI18n } from './I18nProvider';
 
 interface MainContentProps {
   fragments: Fragment[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onAddFragment: (content: string) => Promise<void>;
+  quickCaptureShortcut: string;
 }
 
-export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment }: MainContentProps) {
+export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, quickCaptureShortcut }: MainContentProps) {
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const { t } = useI18n();
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -26,9 +29,9 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
     try {
       await onAddFragment(inputValue);
       setInputValue('');
-      showToast('success', 'Fragment saved successfully!');
+      showToast('success', t('toastSaveSuccess'));
     } catch {
-      showToast('error', 'Failed to save fragment. Please try again.');
+      showToast('error', t('toastSaveError'));
     } finally {
       setSending(false);
     }
@@ -45,19 +48,24 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
     doSubmit();
   };
 
+  const quickRecordPlaceholder = t('quickRecordPlaceholder').replace('{shortcut}', quickCaptureShortcut);
+
   return (
     <main className="flex-1 flex flex-col h-full bg-white relative">
       {/* Top Bar: Search */}
-      <header className="h-16 border-b border-gray-100 flex items-center px-8 shrink-0">
-        <div className="relative w-full max-w-2xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search fragments (Bleve index)..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-200 transition-shadow"
-          />
+      <header className="border-b border-gray-100 px-8 py-5 shrink-0">
+        <div className="mx-auto flex max-w-3xl flex-col gap-3">
+          <p className="text-[10px] font-semibold tracking-[0.2em] text-gray-400">{t('brandFullName')} · {t('brandChineseName')}</p>
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder={t('searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gray-200 transition-shadow"
+            />
+          </div>
         </div>
       </header>
 
@@ -66,7 +74,7 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
         <div className="max-w-3xl mx-auto space-y-6 pb-32">
           {fragments.length === 0 ? (
             <div className="text-center text-gray-400 mt-20">
-              <p>No fragments found.</p>
+              <p>{t('noFragments')}</p>
             </div>
           ) : (
             fragments.map(fragment => (
@@ -84,11 +92,11 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Record a thought... (Alt+S to focus, Cmd+Enter to save)"
+            placeholder={quickRecordPlaceholder}
             className="w-full p-4 pb-12 resize-none border-none focus:outline-none text-sm text-gray-800 bg-transparent min-h-[100px]"
           />
           <div className="absolute bottom-3 right-3 flex items-center gap-3">
-            <span className="text-[10px] text-gray-400">Markdown supported</span>
+            <span className="text-[10px] text-gray-400">{t('markdownSupported')}</span>
             <button
               onClick={handleSubmit}
               disabled={!inputValue.trim() || sending}

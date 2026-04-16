@@ -1,0 +1,121 @@
+import { enUS, zhCN } from 'date-fns/locale';
+
+export const locales = ['en', 'zh-CN'] as const;
+
+export type Locale = (typeof locales)[number];
+
+export const defaultLocale: Locale = 'en';
+
+export const messages = {
+    en: {
+        appDescription: 'A local-first notebook for fleeting thoughts.',
+        brandFullName: 'The Flash Note',
+        brandChineseName: '快闪记事本',
+        brandMeaning: 'TFO means The Flash Note — built to quickly capture ideas before they disappear.',
+        searchSectionTitle: 'Capture and revisit fleeting ideas',
+        searchPlaceholder: 'Search fragments (Bleve index)...',
+        noFragments: 'No fragments found.',
+        quickRecordPlaceholder: 'Record a thought... ({shortcut} to focus, Cmd+Enter to save)',
+        markdownSupported: 'Markdown supported',
+        toastSaveSuccess: 'Fragment saved successfully!',
+        toastSaveError: 'Failed to save fragment. Please try again.',
+        calendarClear: 'Clear',
+        tagsTitle: 'Tags',
+        tagsEmpty: 'No tags yet',
+        wechatSync: 'WeChat Sync',
+        settings: 'Settings',
+        connectWeChat: 'Connect WeChat ClawBot',
+        wechatIntro: 'Scan this QR code with WeChat to bind your phone. Messages sent to the bot will be saved directly to your local drive.',
+        howItWorks: 'How it works',
+        wechatStep1: 'Send text or voice to the ClawBot in WeChat.',
+        wechatStep2: 'It instantly syncs to your local TFO_Data folder.',
+        wechatStep3: 'Zero cloud storage. 100% private.',
+        languageLabel: 'Language',
+        localeEnglish: 'EN',
+        localeChinese: '中文',
+        untitledFragment: 'Untitled fragment',
+        metadataDescription: 'TFO stands for The Flash Note, a lightweight private notebook for capturing fleeting thoughts.',
+        settingsTitle: 'Settings',
+        settingsDescription: 'Manage language and quick-capture behavior for your desktop workflow.',
+        settingsGeneralTitle: 'General',
+        languageSettingLabel: 'Interface language',
+        quickCaptureTitle: 'Quick capture',
+        quickCaptureActionLabel: 'Open quick capture window',
+        quickCaptureShortcutLabel: 'Shortcut',
+        quickCaptureShortcutHint: 'Click the field below, then press the shortcut you want to use.',
+        quickCaptureShortcutRecording: 'Recording shortcut… press a key combination',
+        quickCaptureShortcutEmpty: 'Shortcut cannot be empty.',
+        quickCaptureSaveSuccess: 'Settings saved successfully!',
+        quickCaptureSaveError: 'Failed to save settings. Please try again.',
+        saveButton: 'Save changes',
+        savingButton: 'Saving…',
+        cancelButton: 'Cancel',
+    },
+    'zh-CN': {
+        appDescription: '一个本地优先、用于记录稍纵即逝想法的记事本。',
+        brandFullName: 'The Flash Note',
+        brandChineseName: '快闪记事本',
+        brandMeaning: 'TFO 的含义是 The Flash Note，也就是「快闪记事本」——用来快速捕捉一闪而过的想法。',
+        searchSectionTitle: '快速记录，再回看那些一闪而过的念头',
+        searchPlaceholder: '搜索碎片内容（Bleve 索引）...',
+        noFragments: '暂未找到碎片内容。',
+        quickRecordPlaceholder: '记录一个想法...（{shortcut} 聚焦，Cmd+Enter 保存）',
+        markdownSupported: '支持 Markdown',
+        toastSaveSuccess: '碎片保存成功！',
+        toastSaveError: '碎片保存失败，请稍后重试。',
+        calendarClear: '清除',
+        tagsTitle: '标签',
+        tagsEmpty: '还没有标签',
+        wechatSync: '微信同步',
+        settings: '设置',
+        connectWeChat: '连接微信 ClawBot',
+        wechatIntro: '使用微信扫描此二维码绑定手机，发送给机器人的消息会直接保存到你的本地磁盘。',
+        howItWorks: '工作方式',
+        wechatStep1: '在微信里向 ClawBot 发送文字或语音。',
+        wechatStep2: '内容会立即同步到本地的 TFO_Data 文件夹。',
+        wechatStep3: '零云端存储，100% 私有。',
+        languageLabel: '语言',
+        localeEnglish: 'EN',
+        localeChinese: '中文',
+        untitledFragment: '未命名碎片',
+        metadataDescription: 'TFO 即 The Flash Note（快闪记事本），一个轻量、私有、用于捕捉灵感的本地优先记事工具。',
+        settingsTitle: '设置',
+        settingsDescription: '管理语言与快闪记事行为，贴合你的桌面工作流。',
+        settingsGeneralTitle: '通用',
+        languageSettingLabel: '界面语言',
+        quickCaptureTitle: '快闪记事',
+        quickCaptureActionLabel: '打开快闪记事窗口',
+        quickCaptureShortcutLabel: '快捷键',
+        quickCaptureShortcutHint: '点击下方输入框，然后按下你想使用的快捷键组合。',
+        quickCaptureShortcutRecording: '正在录制快捷键… 请按下组合键',
+        quickCaptureShortcutEmpty: '快捷键不能为空。',
+        quickCaptureSaveSuccess: '设置已保存！',
+        quickCaptureSaveError: '设置保存失败，请稍后重试。',
+        saveButton: '保存修改',
+        savingButton: '保存中…',
+        cancelButton: '取消',
+    },
+} as const;
+
+export type TranslationKey = keyof (typeof messages)[typeof defaultLocale];
+
+export const weekdaysShort = {
+    en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    'zh-CN': ['日', '一', '二', '三', '四', '五', '六'],
+} as const;
+
+export const dateLocales = {
+    en: enUS,
+    'zh-CN': zhCN,
+};
+
+export function isLocale(value: string): value is Locale {
+    return locales.includes(value as Locale);
+}
+
+export function detectPreferredLocale(input?: string | null): Locale {
+    if (!input) return defaultLocale;
+    if (isLocale(input)) return input;
+    if (input.toLowerCase().startsWith('zh')) return 'zh-CN';
+    return defaultLocale;
+}

@@ -5,12 +5,14 @@ package main
 
 import (
 	"context"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 
+	tfo "github.com/libi/tfo"
 	"github.com/libi/tfo/internal/app"
 	"github.com/libi/tfo/internal/server"
 )
@@ -44,13 +46,21 @@ func (a *appState) startServer() error {
 	application.Startup(ctx)
 	a.app = application
 
+	var frontendFS fs.FS
+	if sub, err := fs.Sub(tfo.FrontendAssets, "frontend/out"); err == nil {
+		if _, err := sub.Open("index.html"); err == nil {
+			frontendFS = sub
+			slog.Info("serving embedded frontend in desktop mode")
+		}
+	}
+
 	addr := ":8080"
 	if p := os.Getenv("PORT"); p != "" {
 		addr = ":" + p
 	}
 	a.addr = addr
 
-	router := server.New(application.ServerDependencies(nil))
+	router := server.New(application.ServerDependencies(frontendFS))
 
 	go func() {
 		if err := server.Serve(ctx, addr, router); err != nil {

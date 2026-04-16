@@ -8,10 +8,12 @@ import (
 
 // Config 应用全局配置
 type Config struct {
-	DataDir             string       `json:"dataDir"`
-	HotkeyQuickCapture  string       `json:"hotkeyQuickCapture"`
-	WeChat              WeChatConfig `json:"wechat"`
-	IndexRebuildOnStart bool         `json:"indexRebuildOnStart"`
+	DataDir               string       `json:"dataDir"`
+	UILanguage            string       `json:"uiLanguage,omitempty"`
+	HotkeyQuickCapture    string       `json:"hotkeyQuickCapture"`
+	WeChat                WeChatConfig `json:"wechat"`
+	IndexRebuildOnStart   bool         `json:"indexRebuildOnStart"`
+	TitleMinContentLength int          `json:"titleMinContentLength"`
 }
 
 // WeChatConfig 微信 iLink Bot 连接配置
@@ -30,8 +32,9 @@ const configFileName = ".config.json"
 // DefaultConfig 返回默认配置
 func DefaultConfig() *Config {
 	return &Config{
-		DataDir:            "",
-		HotkeyQuickCapture: "Alt+S",
+		DataDir:               "",
+		HotkeyQuickCapture:    "Alt+S",
+		TitleMinContentLength: 300,
 		WeChat: WeChatConfig{
 			Enabled:              false,
 			BaseURL:              "",

@@ -2,6 +2,44 @@ import Cocoa
 
 // MARK: - Popover Content View Controller
 
+private final class ShortcutTextView: NSTextView {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let isCommandShortcut = modifiers.contains(.command)
+            && !modifiers.contains(.control)
+            && !modifiers.contains(.option)
+        guard isCommandShortcut,
+            let characters = event.charactersIgnoringModifiers?.lowercased()
+        else {
+            return super.performKeyEquivalent(with: event)
+        }
+
+        switch characters {
+        case "a":
+            selectAll(nil)
+            return true
+        case "c":
+            copy(nil)
+            return true
+        case "v":
+            paste(nil)
+            return true
+        case "x":
+            cut(nil)
+            return true
+        case "z":
+            if modifiers.contains(.shift) {
+                undoManager?.redo()
+            } else {
+                undoManager?.undo()
+            }
+            return true
+        default:
+            return super.performKeyEquivalent(with: event)
+        }
+    }
+}
+
 class PopoverViewController: NSViewController, NSTextViewDelegate {
 
     private var textView: NSTextView!
@@ -12,6 +50,8 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
     private var placeholderLabel: NSTextField!
     private var statusDot: NSView!
     private var bottomBar: NSView!
+    private let textHorizontalInset: CGFloat = 6
+    private let textVerticalInset: CGFloat = 6
 
     weak var appDelegate: AppDelegate?
 
@@ -25,6 +65,11 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        focusTextView()
     }
 
     private func setupUI() {
@@ -112,7 +157,7 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
         scrollView.borderType = .noBorder
         scrollView.drawsBackground = false
 
-        textView = NSTextView(
+        textView = ShortcutTextView(
             frame: NSRect(
                 x: 0, y: 0,
                 width: scrollView.contentSize.width,
@@ -129,12 +174,16 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
             height: CGFloat.greatestFiniteMagnitude
         )
         textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.textContainerInset = NSSize(width: textHorizontalInset, height: textVerticalInset)
         textView.font = NSFont.systemFont(ofSize: 14)
         textView.textColor = NSColor(white: 0.15, alpha: 1.0)
         textView.backgroundColor = .clear
         textView.isRichText = false
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.allowsUndo = true
         textView.delegate = self
         textView.insertionPointColor = NSColor(white: 0.3, alpha: 1.0)
 
@@ -147,8 +196,10 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
         placeholderLabel.font = NSFont.systemFont(ofSize: 14)
         placeholderLabel.textColor = NSColor(white: 0.70, alpha: 1.0)
         placeholderLabel.frame = NSRect(
-            x: padding + 5, y: bottomBarHeight + padding + textAreaHeight - 24,
-            width: width - padding * 2 - 10, height: 20
+            x: scrollView.frame.minX + textHorizontalInset,
+            y: scrollView.frame.maxY - textVerticalInset - placeholderLabel.intrinsicContentSize.height,
+            width: scrollView.frame.width - textHorizontalInset * 2,
+            height: placeholderLabel.intrinsicContentSize.height
         )
         placeholderLabel.isEditable = false
         placeholderLabel.isBezeled = false
@@ -197,6 +248,11 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
 
     func textDidChange(_ notification: Notification) {
         placeholderLabel.isHidden = !textView.string.isEmpty
+    }
+
+    func focusTextView() {
+        guard isViewLoaded else { return }
+        view.window?.makeFirstResponder(textView)
     }
 
     // MARK: - Actions
@@ -431,6 +487,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             popoverVC.updateStatusDot(isRunning: isServerRunning, isStarting: isServerStarting)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             NSApp.activate(ignoringOtherApps: true)
+            DispatchQueue.main.async { [weak self] in
+                self?.popoverVC.focusTextView()
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { I18nProvider } from '@/components/I18nProvider';
 import './globals.css'; // Global styles
 
 const inter = Inter({
@@ -13,15 +14,15 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'TFO',
-  description: 'A lightweight, private, fragmented information collection tool.',
+  title: 'TFO · The Flash Note',
+  description: 'TFO stands for The Flash Note, a lightweight private notebook for capturing fleeting thoughts.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans bg-[#fafafa] text-gray-900 antialiased selection:bg-gray-200 selection:text-gray-900" suppressHydrationWarning>
-        {children}
+        <I18nProvider>{children}</I18nProvider>
       </body>
     </html>
   );

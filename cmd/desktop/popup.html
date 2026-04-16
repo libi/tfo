@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+            background: #fff;
+            color: #262626;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        #editor-wrap {
+            flex: 1;
+            padding: 16px 16px 12px 16px;
+            overflow: hidden;
+        }
+
+        #editor {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #262626;
+            background: transparent;
+            font-family: inherit;
+        }
+
+        #editor::placeholder {
+            color: #b3b3b3;
+        }
+
+        .separator {
+            height: 1px;
+            background: #e6e6e6;
+            flex-shrink: 0;
+        }
+
+        #bar {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            background: #f9f9f9;
+            flex-shrink: 0;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffa500;
+            flex-shrink: 0;
+        }
+
+        .dot.ready {
+            background: #4caf50;
+        }
+
+        .bar-btn {
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+        }
+
+        .bar-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: none;
+            stroke: #888;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .bar-btn:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+
+        .bar-btn:hover svg {
+            stroke: #555;
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        #submit-btn {
+            border: none;
+            cursor: pointer;
+            background: #4285f4;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: background .15s;
+        }
+
+        #submit-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        #submit-btn:hover:not(:disabled) {
+            background: #3b78e7;
+        }
+
+        #submit-btn:disabled {
+            background: #ccc;
+            cursor: default;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div id="editor-wrap">
+            <textarea id="editor" autofocus></textarea>
+        </div>
+        <div class="separator"></div>
+        <div id="bar">
+            <div class="dot" id="status-dot"></div>
+            <button class="bar-btn" id="btn-settings" title="Settings">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+            </button>
+            <button class="bar-btn" id="btn-quit" title="Quit">
+                <svg viewBox="0 0 24 24">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                    <line x1="12" y1="2" x2="12" y2="12" />
+                </svg>
+            </button>
+            <div class="spacer"></div>
+            <button id="submit-btn" disabled>
+                <svg viewBox="0 0 24 24">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Wails runtime will be injected automatically.
+        const API = () => window.go && window.go.main && window.go.main.PopupAPI;
+        const runtime = () => window.runtime;
+
+        // i18n — Go backend provides locale info via Init().
+        let i18n = { placeholder: "Capture a fleeting thought…", submit: "Save" };
+
+        function applyI18n(cfg) {
+            if (cfg.placeholder) i18n.placeholder = cfg.placeholder;
+            document.getElementById("editor").placeholder = i18n.placeholder;
+            if (cfg.ready) document.getElementById("status-dot").classList.add("ready");
+        }
+
+        function updateSubmitState() {
+            document.getElementById("submit-btn").disabled = !document.getElementById("editor").value.trim();
+        }
+
+        // Focus loss — hide popup when user clicks elsewhere.
+        // Go side has its own guard, so JS just calls HidePopup directly.
+        window.addEventListener("blur", () => {
+            const api = API();
+            if (api) api.HidePopup();
+        });
+
+        window.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("editor").placeholder = i18n.placeholder;
+            document.getElementById("editor").addEventListener("input", updateSubmitState);
+
+            const api = API();
+            if (api) api.Init().then(applyI18n);
+
+            // Listen for Go events.
+            const rt = runtime();
+            if (rt) {
+                rt.EventsOn("popup-show", () => {
+                    // Reset textarea and focus when popup is shown.
+                    const editor = document.getElementById("editor");
+                    editor.value = "";
+                    updateSubmitState();
+                    setTimeout(() => editor.focus(), 100);
+                });
+                rt.EventsOn("server-ready", () => {
+                    document.getElementById("status-dot").classList.add("ready");
+                });
+            }
+        });
+
+        document.getElementById("submit-btn").addEventListener("click", doSubmit);
+        document.getElementById("btn-settings").addEventListener("click", () => {
+            const api = API();
+            if (api) api.OpenSettings();
+        });
+        document.getElementById("btn-quit").addEventListener("click", () => {
+            const api = API();
+            if (api) api.Quit();
+        });
+
+        // Ctrl+Enter or Cmd+Enter to submit, Escape to hide.
+        document.getElementById("editor").addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                const api = API();
+                if (api) api.HidePopup();
+                return;
+            }
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                doSubmit();
+            }
+        });
+
+        async function doSubmit() {
+            const editor = document.getElementById("editor");
+            const content = editor.value.trim();
+            if (!content) return;
+            const btn = document.getElementById("submit-btn");
+            btn.disabled = true;
+            try {
+                const api = API();
+                if (api) {
+                    await api.Submit(content);
+                    editor.value = "";
+                }
+            } catch (e) {
+                // Keep content on error so user can retry.
+            }
+            updateSubmitState();
+        }
+    </script>
+</body>
+
+</html>

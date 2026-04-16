@@ -63,10 +63,11 @@ build_desktop_windows() {
     echo "  ⚠ go-winres not found, install with: go install github.com/tc-hib/go-winres@latest"
   fi
 
-  for arch in amd64 arm64; do
+  for arch in amd64; do
     should_build windows "$arch" || continue
     # -H windowsgui hides the console window on launch
     CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath \
+      -tags production \
       -ldflags "$LDFLAGS -H windowsgui" \
       -o "$DIST/desktop/windows_${arch}/tfo-desktop.exe" ./cmd/desktop
     echo "  ✓ $DIST/desktop/windows_${arch}/tfo-desktop.exe"
