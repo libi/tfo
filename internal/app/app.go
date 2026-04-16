@@ -17,6 +17,11 @@ import (
 	"github.com/libi/tfo/internal/watcher"
 )
 
+// DataDirChooser 是一个回调函数类型，用于在未找到 tfo.json 时让用户选择数据目录。
+// 参数 defaultDir 为建议的默认目录，返回用户选择的目录。
+// 返回空字符串表示用户取消。
+type DataDirChooser func(defaultDir string) (string, error)
+
 // App 是应用的主结构体，管理所有子模块的生命周期
 type App struct {
 	ctx           context.Context
@@ -28,6 +33,10 @@ type App struct {
 	watcher       *watcher.Watcher
 	receiver      *channel.Receiver
 	wechatAdapter *wechat.WeChatAdapter
+
+	// DataDirChooser 可由平台层设置，用于首次运行时让用户选择数据目录。
+	// 若为 nil，则直接使用默认数据目录。
+	DataDirChooser DataDirChooser
 }
 
 // New 创建应用实例
@@ -39,7 +48,11 @@ func New() *App {
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 
-	dataDir := a.resolveDataDir()
+	dataDir, err := a.resolveDataDir()
+	if err != nil {
+		log.Fatalf("resolve data dir: %v", err)
+	}
+
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		log.Fatalf("create data dir: %v", err)
 	}
@@ -102,15 +115,43 @@ func (a *App) ServerDependencies(frontendFS fs.FS) *server.Dependencies {
 	}
 }
 
-func (a *App) resolveDataDir() string {
-	if dir := os.Getenv("TFO_DATA_DIR"); dir != "" {
-		return dir
+// resolveDataDir 通过 tfo.json 引导确定数据目录。
+// 如果未找到有效的 tfo.json，则通过 DataDirChooser（若有）让用户选择，
+// 否则使用平台默认目录。最终写入 tfo.json 并初始化数据目录。
+func (a *App) resolveDataDir() (string, error) {
+	// 1. 尝试加载已有的 tfo.json
+	bc, _, err := config.LoadBootstrap()
+	if err == nil {
+		return bc.DataDir, nil
 	}
-	exe, err := os.Executable()
-	if err != nil {
-		return filepath.Join(".", "TFO_Data")
+
+	// 2. 未找到有效 tfo.json，确定数据目录
+	dataDir := config.DefaultDataDir()
+
+	if a.DataDirChooser != nil {
+		chosen, err := a.DataDirChooser(dataDir)
+		if err != nil {
+			return "", fmt.Errorf("choose data dir: %w", err)
+		}
+		if chosen == "" {
+			return "", fmt.Errorf("user cancelled data dir selection")
+		}
+		dataDir = chosen
 	}
-	return filepath.Join(filepath.Dir(exe), "TFO_Data")
+
+	// 3. 初始化数据目录（创建 + 写入默认 .config.json）
+	if err := config.InitDataDir(dataDir); err != nil {
+		return "", fmt.Errorf("init data dir: %w", err)
+	}
+
+	// 4. 保存 tfo.json
+	bootstrapDir := config.DefaultBootstrapDir()
+	bc = &config.BootstrapConfig{DataDir: dataDir}
+	if err := config.SaveBootstrap(bootstrapDir, bc); err != nil {
+		log.Printf("warning: save tfo.json to %s failed: %v", bootstrapDir, err)
+	}
+
+	return dataDir, nil
 }
 
 // GetConfig 获取当前配置

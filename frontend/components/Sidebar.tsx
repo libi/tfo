@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { Calendar as CalendarIcon, Hash, Settings, Smartphone } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { useI18n } from './I18nProvider';
@@ -10,10 +11,9 @@ interface SidebarProps {
   selectedDate: Date | null;
   onSelectDate: (date: Date | null) => void;
   onOpenClawBot: () => void;
-  onOpenSettings: () => void;
 }
 
-export function Sidebar({ tags, selectedTag, onSelectTag, selectedDate, onSelectDate, onOpenClawBot, onOpenSettings }: SidebarProps) {
+export function Sidebar({ tags, selectedTag, onSelectTag, selectedDate, onSelectDate, onOpenClawBot }: SidebarProps) {
   const { t, dateLocale, weekdayLabels } = useI18n();
   // Simple calendar for current month
   const today = new Date();
@@ -124,10 +124,10 @@ export function Sidebar({ tags, selectedTag, onSelectTag, selectedDate, onSelect
           <Smartphone size={16} />
           {t('wechatSync')}
         </button>
-        <button onClick={onOpenSettings} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-md transition-colors">
+        <Link href="/settings" className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-md transition-colors">
           <Settings size={16} />
           {t('settings')}
-        </button>
+        </Link>
       </div>
     </aside>
   );

@@ -39,6 +39,7 @@ func (a *appState) startServer() error {
 	defer a.mu.Unlock()
 
 	application := app.New()
+	application.DataDirChooser = platformDataDirChooser()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	a.cancel = cancel

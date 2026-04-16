@@ -6,9 +6,10 @@ import (
 	"path/filepath"
 )
 
-// Config 应用全局配置
+// Config 用户配置，保存在数据目录下的 .config.json 中。
+// DataDir 不参与 JSON 序列化，由 tfo.json 引导确定。
 type Config struct {
-	DataDir               string       `json:"dataDir"`
+	DataDir               string       `json:"-"`
 	UILanguage            string       `json:"uiLanguage,omitempty"`
 	HotkeyQuickCapture    string       `json:"hotkeyQuickCapture"`
 	WeChat                WeChatConfig `json:"wechat"`

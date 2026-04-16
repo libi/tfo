@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { MainContent } from '@/components/MainContent';
 import { ClawBotModal } from '@/components/ClawBotModal';
-import { SettingsModal } from '@/components/SettingsModal';
 import type { Fragment } from '@/types';
 import * as api from '@/lib/api';
 import { format } from 'date-fns';
@@ -28,11 +27,8 @@ export default function Home() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isClawBotModalOpen, setIsClawBotModalOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [isSettingsSaving, setIsSettingsSaving] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [appConfig, setAppConfig] = useState<api.AppConfig | null>(null);
-  const [settingsToast, setSettingsToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -135,38 +131,11 @@ export default function Home() {
   };
 
   const quickCaptureShortcut = normalizeShortcut(appConfig?.hotkeyQuickCapture || defaultQuickCaptureShortcut);
-  const configLocale = appConfig?.uiLanguage;
-  const settingsInitialLocale: Locale = configLocale && isLocale(configLocale) ? configLocale : locale;
-
-  const handleSaveSettings = async ({ locale: nextLocale, hotkeyQuickCapture }: { locale: Locale; hotkeyQuickCapture: string }) => {
-    const baseConfig = appConfig ?? await api.getConfig();
-    const nextConfig: api.AppConfig = {
-      ...baseConfig,
-      uiLanguage: nextLocale,
-      hotkeyQuickCapture,
-    };
-
-    setIsSettingsSaving(true);
-    try {
-      const saved = await api.updateConfig(nextConfig);
-      setAppConfig(saved);
-      setLocale(nextLocale);
-      setIsSettingsModalOpen(false);
-      setSettingsToast({ type: 'success', message: t('quickCaptureSaveSuccess') });
-      setTimeout(() => setSettingsToast(null), 2200);
-    } catch (err) {
-      console.error('Failed to save settings:', err);
-      setSettingsToast({ type: 'error', message: t('quickCaptureSaveError') });
-      setTimeout(() => setSettingsToast(null), 4000);
-    } finally {
-      setIsSettingsSaving(false);
-    }
-  };
 
   // Global shortcut for Quick Record
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isEditableTarget(e.target) || isSettingsModalOpen || isClawBotModalOpen) {
+      if (isEditableTarget(e.target) || isClawBotModalOpen) {
         return;
       }
       if (matchesShortcut(e, quickCaptureShortcut)) {
@@ -176,7 +145,7 @@ export default function Home() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isClawBotModalOpen, isSettingsModalOpen, quickCaptureShortcut]);
+  }, [isClawBotModalOpen, quickCaptureShortcut]);
 
   if (!mounted) {
     return <div className="flex h-screen bg-[#fafafa]"></div>;
@@ -191,7 +160,6 @@ export default function Home() {
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
         onOpenClawBot={() => setIsClawBotModalOpen(true)}
-        onOpenSettings={() => setIsSettingsModalOpen(true)}
       />
       <MainContent
         fragments={filteredFragments}
@@ -203,20 +171,6 @@ export default function Home() {
 
       {isClawBotModalOpen && (
         <ClawBotModal onClose={() => setIsClawBotModalOpen(false)} />
-      )}
-      {isSettingsModalOpen && (
-        <SettingsModal
-          initialLocale={settingsInitialLocale}
-          initialShortcut={quickCaptureShortcut}
-          isSaving={isSettingsSaving}
-          onClose={() => setIsSettingsModalOpen(false)}
-          onSave={handleSaveSettings}
-        />
-      )}
-      {settingsToast && (
-        <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2 text-sm text-white shadow-lg transition-all ${settingsToast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-          {settingsToast.message}
-        </div>
       )}
     </div>
   );

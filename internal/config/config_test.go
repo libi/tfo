@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -42,6 +43,12 @@ func TestSaveAndLoad(t *testing.T) {
 		t.Fatalf("Save() error = %v", err)
 	}
 
+	// DataDir should not appear in the JSON file (json:"-")
+	data, _ := os.ReadFile(filepath.Join(tmpDir, configFileName))
+	if strings.Contains(string(data), "dataDir") {
+		t.Error("DataDir should not be serialized to .config.json")
+	}
+
 	loaded, err := Load(tmpDir)
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -53,6 +60,7 @@ func TestSaveAndLoad(t *testing.T) {
 	if loaded.WeChat.Token != "test-token" {
 		t.Errorf("Token = %q", loaded.WeChat.Token)
 	}
+	// DataDir is set by Load(), not from JSON
 	if loaded.DataDir != tmpDir {
 		t.Errorf("DataDir = %q, want %q", loaded.DataDir, tmpDir)
 	}

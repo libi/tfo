@@ -60,6 +60,7 @@ func New(deps *Dependencies) *gin.Engine {
 		api.GET("/search", searchNotes(deps))
 		api.GET("/config", getConfig(deps))
 		api.PUT("/config", updateConfig(deps))
+		api.PUT("/bootstrap", updateBootstrap(deps))
 		api.GET("/wechat/states", getChannelStates(deps))
 		api.POST("/wechat/start", startWeChat(deps))
 		api.POST("/wechat/stop", stopWeChat(deps))
@@ -225,7 +226,15 @@ func searchNotes(deps *Dependencies) gin.HandlerFunc {
 
 func getConfig(deps *Dependencies) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, deps.Config)
+		// DataDir has json:"-" in Config, so wrap it for the API response
+		type configResponse struct {
+			DataDir string `json:"dataDir"`
+			*config.Config
+		}
+		c.JSON(http.StatusOK, configResponse{
+			DataDir: deps.Config.DataDir,
+			Config:  deps.Config,
+		})
 	}
 }
 
@@ -245,6 +254,27 @@ func updateConfig(deps *Dependencies) gin.HandlerFunc {
 			}
 		}
 		c.JSON(http.StatusOK, deps.Config)
+	}
+}
+
+func updateBootstrap(deps *Dependencies) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			DataDir string `json:"dataDir" binding:"required"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		bootstrapDir := config.DefaultBootstrapDir()
+		bc := &config.BootstrapConfig{DataDir: req.DataDir}
+		if err := config.SaveBootstrap(bootstrapDir, bc); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"dataDir": req.DataDir, "message": "Bootstrap updated. Restart the application to use the new data directory."})
 	}
 }
 

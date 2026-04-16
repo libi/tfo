@@ -15,6 +15,8 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/libi/tfo/internal/app"
+
 	"github.com/energye/systray"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -55,6 +57,11 @@ func detectSystemLang() Lang {
 		return LangZH
 	}
 	return LangEN
+}
+
+// platformDataDirChooser Windows 下不弹选择器，使用默认目录（可执行文件同级）。
+func platformDataDirChooser() app.DataDirChooser {
+	return nil
 }
 
 // ---------------------------------------------------------------------------

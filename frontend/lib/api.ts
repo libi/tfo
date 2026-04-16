@@ -140,6 +140,16 @@ export async function updateConfig(config: AppConfig): Promise<AppConfig> {
     return res.json();
 }
 
+export async function updateBootstrap(dataDir: string): Promise<{ dataDir: string; message: string }> {
+    const res = await fetch(`${API_BASE}/bootstrap`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataDir }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
 // --- WeChat ---
 
 export async function getChannelStates(): Promise<Record<string, string>> {
