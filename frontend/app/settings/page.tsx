@@ -27,7 +27,10 @@ export default function SettingsPage() {
     // Draft state for all config fields
     const [draftLocale, setDraftLocale] = useState<Locale>(locale);
     const [draftShortcut, setDraftShortcut] = useState('Alt+S');
+    const [draftGlobalToggle, setDraftGlobalToggle] = useState('Ctrl+Shift+T');
+    const [draftSaveShortcut, setDraftSaveShortcut] = useState('Ctrl+Enter');
     const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
+    const [recordingTarget, setRecordingTarget] = useState<'focus' | 'globalToggle' | 'save' | null>(null);
     const [draftWechat, setDraftWechat] = useState<api.WeChatConfig>({
         enabled: false,
         baseUrl: '',
@@ -55,6 +58,8 @@ export default function SettingsPage() {
                 setDraftLocale(cfg.uiLanguage as Locale);
             }
             setDraftShortcut(normalizeShortcut(cfg.hotkeyQuickCapture) || 'Alt+S');
+            setDraftGlobalToggle(normalizeShortcut(cfg.hotkeyGlobalToggle) || 'Ctrl+Shift+T');
+            setDraftSaveShortcut(normalizeShortcut(cfg.hotkeySave) || 'Ctrl+Enter');
             setDraftWechat(cfg.wechat);
             setDraftIndexRebuild(cfg.indexRebuildOnStart);
             setDraftTitleMinLength(cfg.titleMinContentLength);
@@ -73,11 +78,13 @@ export default function SettingsPage() {
         return (
             draftLocale !== origLocale ||
             draftShortcut !== normalizeShortcut(config.hotkeyQuickCapture) ||
+            draftGlobalToggle !== normalizeShortcut(config.hotkeyGlobalToggle) ||
+            draftSaveShortcut !== normalizeShortcut(config.hotkeySave) ||
             draftIndexRebuild !== config.indexRebuildOnStart ||
             draftTitleMinLength !== config.titleMinContentLength ||
             JSON.stringify(draftWechat) !== JSON.stringify(config.wechat)
         );
-    }, [config, draftLocale, draftShortcut, draftWechat, draftIndexRebuild, draftTitleMinLength, locale]);
+    }, [config, draftLocale, draftShortcut, draftGlobalToggle, draftSaveShortcut, draftWechat, draftIndexRebuild, draftTitleMinLength, locale]);
 
     const showToast = (type: 'success' | 'error', message: string) => {
         setToast({ type, message });
@@ -91,7 +98,9 @@ export default function SettingsPage() {
             const nextConfig: api.AppConfig = {
                 ...config,
                 uiLanguage: draftLocale,
+                hotkeyGlobalToggle: normalizeShortcut(draftGlobalToggle) || 'Ctrl+Shift+T',
                 hotkeyQuickCapture: normalizeShortcut(draftShortcut) || 'Alt+S',
+                hotkeySave: normalizeShortcut(draftSaveShortcut) || 'Ctrl+Enter',
                 wechat: draftWechat,
                 indexRebuildOnStart: draftIndexRebuild,
                 titleMinContentLength: draftTitleMinLength,
@@ -108,14 +117,22 @@ export default function SettingsPage() {
         }
     };
 
-    const handleShortcutKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const handleShortcutKeyDown = (target: 'focus' | 'globalToggle' | 'save') => (event: React.KeyboardEvent<HTMLButtonElement>) => {
         event.preventDefault();
-        if (event.key === 'Escape') { setIsRecordingShortcut(false); return; }
-        if (event.key === 'Backspace' || event.key === 'Delete') { setDraftShortcut(''); return; }
+        if (event.key === 'Escape') { setIsRecordingShortcut(false); setRecordingTarget(null); return; }
+        if (event.key === 'Backspace' || event.key === 'Delete') {
+            if (target === 'focus') setDraftShortcut('');
+            else if (target === 'globalToggle') setDraftGlobalToggle('');
+            else setDraftSaveShortcut('');
+            return;
+        }
         const shortcut = keyboardEventToShortcut(event);
         if (!shortcut) return;
-        setDraftShortcut(shortcut);
+        if (target === 'focus') setDraftShortcut(shortcut);
+        else if (target === 'globalToggle') setDraftGlobalToggle(shortcut);
+        else setDraftSaveShortcut(shortcut);
         setIsRecordingShortcut(false);
+        setRecordingTarget(null);
     };
 
     const handleDataDirChange = async () => {
@@ -239,29 +256,61 @@ export default function SettingsPage() {
                         </div>
                     </section>
 
-                    {/* Quick Capture */}
+                    {/* Hotkeys */}
                     <section className="rounded-2xl border border-gray-100 bg-white p-6">
                         <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
                             <Keyboard size={16} />
                             {t('quickCaptureTitle')}
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-5">
+                            {/* Global toggle hotkey */}
                             <div>
-                                <div className="text-sm font-medium text-gray-700">{t('quickCaptureActionLabel')}</div>
-                                <p className="mt-1 text-sm text-gray-500">{t('quickCaptureShortcutHint')}</p>
-                            </div>
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700">{t('quickCaptureShortcutLabel')}</label>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">{t('hotkeyGlobalToggleLabel')}</label>
+                                <p className="mb-2 text-xs text-gray-500">{t('hotkeyGlobalToggleHint')}</p>
                                 <button
                                     type="button"
-                                    onFocus={() => setIsRecordingShortcut(true)}
-                                    onBlur={() => setIsRecordingShortcut(false)}
-                                    onKeyDown={handleShortcutKeyDown}
+                                    onFocus={() => { setIsRecordingShortcut(true); setRecordingTarget('globalToggle'); }}
+                                    onBlur={() => { setIsRecordingShortcut(false); setRecordingTarget(null); }}
+                                    onKeyDown={handleShortcutKeyDown('globalToggle')}
+                                    className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition-colors hover:border-gray-300 focus:border-gray-400 focus:outline-none"
+                                >
+                                    <span className="font-mono text-sm text-gray-900">{draftGlobalToggle || '—'}</span>
+                                    <span className="text-xs text-gray-400">
+                                        {isRecordingShortcut && recordingTarget === 'globalToggle' ? t('quickCaptureShortcutRecording') : t('quickCaptureShortcutHint')}
+                                    </span>
+                                </button>
+                            </div>
+                            {/* Focus input hotkey */}
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">{t('quickCaptureShortcutLabel')}</label>
+                                <p className="mb-2 text-xs text-gray-500">{t('hotkeyFocusHint')}</p>
+                                <button
+                                    type="button"
+                                    onFocus={() => { setIsRecordingShortcut(true); setRecordingTarget('focus'); }}
+                                    onBlur={() => { setIsRecordingShortcut(false); setRecordingTarget(null); }}
+                                    onKeyDown={handleShortcutKeyDown('focus')}
                                     className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition-colors hover:border-gray-300 focus:border-gray-400 focus:outline-none"
                                 >
                                     <span className="font-mono text-sm text-gray-900">{draftShortcut || '—'}</span>
                                     <span className="text-xs text-gray-400">
-                                        {isRecordingShortcut ? t('quickCaptureShortcutRecording') : t('quickCaptureShortcutHint')}
+                                        {isRecordingShortcut && recordingTarget === 'focus' ? t('quickCaptureShortcutRecording') : t('quickCaptureShortcutHint')}
+                                    </span>
+                                </button>
+                            </div>
+                            {/* Save hotkey */}
+                            <div>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">{t('hotkeySaveLabel')}</label>
+                                <p className="mb-2 text-xs text-gray-500">{t('hotkeySaveHint')}</p>
+                                <button
+                                    type="button"
+                                    onFocus={() => { setIsRecordingShortcut(true); setRecordingTarget('save'); }}
+                                    onBlur={() => { setIsRecordingShortcut(false); setRecordingTarget(null); }}
+                                    onKeyDown={handleShortcutKeyDown('save')}
+                                    className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-left transition-colors hover:border-gray-300 focus:border-gray-400 focus:outline-none"
+                                >
+                                    <span className="font-mono text-sm text-gray-900">{draftSaveShortcut || '—'}</span>
+                                    <span className="text-xs text-gray-400">
+                                        {isRecordingShortcut && recordingTarget === 'save' ? t('quickCaptureShortcutRecording') : t('quickCaptureShortcutHint')}
                                     </span>
                                 </button>
                             </div>

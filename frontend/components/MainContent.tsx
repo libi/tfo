@@ -3,6 +3,7 @@ import { Search, Send } from 'lucide-react';
 import type { Fragment } from '@/types';
 import { FragmentCard } from './FragmentCard';
 import { useI18n } from './I18nProvider';
+import { matchesShortcut } from '@/lib/hotkeys';
 
 interface MainContentProps {
   fragments: Fragment[];
@@ -10,9 +11,10 @@ interface MainContentProps {
   onSearchChange: (query: string) => void;
   onAddFragment: (content: string) => Promise<void>;
   quickCaptureShortcut: string;
+  saveShortcut: string;
 }
 
-export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, quickCaptureShortcut }: MainContentProps) {
+export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, quickCaptureShortcut, saveShortcut }: MainContentProps) {
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -38,7 +40,7 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    if (matchesShortcut(e.nativeEvent, saveShortcut)) {
       e.preventDefault();
       doSubmit();
     }
@@ -48,7 +50,7 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
     doSubmit();
   };
 
-  const quickRecordPlaceholder = t('quickRecordPlaceholder').replace('{shortcut}', quickCaptureShortcut);
+  const quickRecordPlaceholder = t('quickRecordPlaceholder').replace('{shortcut}', quickCaptureShortcut).replace('{saveShortcut}', saveShortcut);
 
   return (
     <main className="flex-1 flex flex-col h-full bg-white relative">

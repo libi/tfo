@@ -399,7 +399,7 @@ func (fs *FileStore) LoadByPath(absPath string) (*Note, error) {
 	return fs.Load(context.Background(), id)
 }
 
-// PathToID 将绝对文件路径转换为笔记 ID (格式: "2025-01/20250115-100000")
+// PathToID 将绝对文件路径转换为笔记 ID (格式: "20250115-100000")
 func (fs *FileStore) PathToID(absPath string) string {
 	rel, err := filepath.Rel(fs.rootDir, absPath)
 	if err != nil {
@@ -410,5 +410,6 @@ func (fs *FileStore) PathToID(absPath string) string {
 	if ext != fileExtension {
 		return ""
 	}
-	return strings.TrimSuffix(rel, ext)
+	// 去掉扩展名后取文件名部分（不含月份目录前缀）
+	return strings.TrimSuffix(filepath.Base(rel), ext)
 }

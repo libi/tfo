@@ -83,9 +83,13 @@ func runDesktop(state *appState) {
 	// Pre-load Wails popup in background goroutine (hidden).
 	go preloadPopup(state)
 
+	// Register global hotkey Ctrl+Shift+T
+	go registerGlobalHotkey()
+
 	systray.Run(func() {
 		onReady(state)
 	}, func() {
+		unregisterGlobalHotkey()
 		if popupCtx != nil {
 			wailsRuntime.Quit(popupCtx)
 		}
@@ -210,6 +214,52 @@ func (p *PopupAPI) HidePopup() {
 func (p *PopupAPI) Quit() {
 	hidePopup()
 	go systray.Quit()
+}
+
+// ---------------------------------------------------------------------------
+// Global Hotkey (Ctrl+Shift+T)
+// ---------------------------------------------------------------------------
+
+const hotkeyID = 1
+
+func registerGlobalHotkey() {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	registerHotKey := user32.NewProc("RegisterHotKey")
+	getMessage := user32.NewProc("GetMessageW")
+
+	// MOD_CONTROL=0x0002, MOD_SHIFT=0x0004, VK_T=0x54
+	ret, _, err := registerHotKey.Call(0, uintptr(hotkeyID), 0x0002|0x0004, 0x54)
+	if ret == 0 {
+		slog.Warn("failed to register global hotkey Ctrl+Shift+T", "error", err)
+		return
+	}
+	slog.Info("global hotkey Ctrl+Shift+T registered")
+
+	// Message loop for hotkey events
+	type msg struct {
+		HWnd    uintptr
+		Message uint32
+		WParam  uintptr
+		LParam  uintptr
+		Time    uint32
+		Pt      struct{ X, Y int32 }
+	}
+	var m msg
+	for {
+		ret, _, _ := getMessage.Call(uintptr(unsafe.Pointer(&m)), 0, 0, 0)
+		if ret == 0 {
+			break
+		}
+		if m.Message == 0x0312 { // WM_HOTKEY
+			go togglePopup()
+		}
+	}
+}
+
+func unregisterGlobalHotkey() {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	unregisterHotKey := user32.NewProc("UnregisterHotKey")
+	unregisterHotKey.Call(0, uintptr(hotkeyID))
 }
 
 // ---------------------------------------------------------------------------

@@ -11,7 +11,9 @@ import (
 type Config struct {
 	DataDir               string       `json:"-"`
 	UILanguage            string       `json:"uiLanguage,omitempty"`
+	HotkeyGlobalToggle    string       `json:"hotkeyGlobalToggle"`
 	HotkeyQuickCapture    string       `json:"hotkeyQuickCapture"`
+	HotkeySave            string       `json:"hotkeySave"`
 	WeChat                WeChatConfig `json:"wechat"`
 	IndexRebuildOnStart   bool         `json:"indexRebuildOnStart"`
 	TitleMinContentLength int          `json:"titleMinContentLength"`
@@ -34,7 +36,9 @@ const configFileName = ".config.json"
 func DefaultConfig() *Config {
 	return &Config{
 		DataDir:               "",
+		HotkeyGlobalToggle:    "Ctrl+Shift+T",
 		HotkeyQuickCapture:    "Alt+S",
+		HotkeySave:            "Ctrl+Enter",
 		TitleMinContentLength: 300,
 		WeChat: WeChatConfig{
 			Enabled:              false,

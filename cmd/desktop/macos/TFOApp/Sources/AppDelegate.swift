@@ -399,6 +399,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var isServerStarting = false
     private var startupProbeID = UUID()
     private var eventMonitor: Any?
+    private var globalHotkeyMonitor: Any?
 
     // MARK: - Lifecycle
 
@@ -406,6 +407,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
         setupPopover()
+        registerGlobalHotkey()
         startGoServer(autoOpenDashboard: false)
     }
 
@@ -414,9 +416,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
         }
+        if let hotkey = globalHotkeyMonitor {
+            NSEvent.removeMonitor(hotkey)
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        return true
+    }
+
+    // MARK: - Global Hotkey (Cmd+Shift+T)
+
+    private func registerGlobalHotkey() {
+        // Monitor key events globally (when app is not focused).
+        globalHotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.handleHotkeyEvent(event)
+        }
+        // Also monitor when app is focused (local).
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if self?.handleHotkeyEvent(event) == true {
+                return nil // swallow the event
+            }
+            return event
+        }
+    }
+
+    @discardableResult
+    private func handleHotkeyEvent(_ event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let required: NSEvent.ModifierFlags = [.command, .shift]
+        guard flags == required,
+              event.charactersIgnoringModifiers?.lowercased() == "t"
+        else { return false }
+        DispatchQueue.main.async { [weak self] in
+            self?.togglePopover()
+        }
         return true
     }
 

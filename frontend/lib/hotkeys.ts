@@ -36,10 +36,28 @@ export function keyboardEventToShortcut(event: KeyboardEvent | React.KeyboardEve
     if (event.metaKey) parts.push('Cmd');
 
     const rawKey = event.key;
-    const normalizedKey = normalizeMainKey(rawKey);
     const modifierOnlyKeys = new Set(['Control', 'Alt', 'Shift', 'Meta', 'Command']);
-    if (!modifierOnlyKeys.has(rawKey) && normalizedKey) {
-        parts.push(normalizedKey);
+    if (!modifierOnlyKeys.has(rawKey)) {
+        // On macOS, Alt (Option) modifies event.key to special characters (e.g. Alt+S → 'ß').
+        // Use event.code to get the physical key for reliable matching.
+        const hasModifier = event.ctrlKey || event.altKey || event.shiftKey || event.metaKey;
+        const code = 'code' in event ? (event as KeyboardEvent).code : '';
+        let mainKey: string;
+        if (hasModifier && code) {
+            if (code.startsWith('Key')) {
+                mainKey = code.slice(3).toUpperCase();
+            } else if (code.startsWith('Digit')) {
+                mainKey = code.slice(5);
+            } else {
+                // For special keys like Enter, Space, etc., use normalized key name
+                mainKey = normalizeMainKey(code);
+            }
+        } else {
+            mainKey = normalizeMainKey(rawKey);
+        }
+        if (mainKey) {
+            parts.push(mainKey);
+        }
     }
 
     return normalizeShortcut(parts.join('+'));

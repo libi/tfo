@@ -12,6 +12,7 @@ import { isLocale, type Locale } from '@/lib/i18n';
 import { matchesShortcut, normalizeShortcut } from '@/lib/hotkeys';
 
 const defaultQuickCaptureShortcut = 'Alt+S';
+const defaultSaveShortcut = 'Ctrl+Enter';
 
 function isEditableTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
@@ -131,6 +132,7 @@ export default function Home() {
   };
 
   const quickCaptureShortcut = normalizeShortcut(appConfig?.hotkeyQuickCapture || defaultQuickCaptureShortcut);
+  const saveShortcut = normalizeShortcut(appConfig?.hotkeySave || defaultSaveShortcut);
 
   // Global shortcut for Quick Record
   useEffect(() => {
@@ -167,6 +169,7 @@ export default function Home() {
         onSearchChange={setSearchQuery}
         onAddFragment={handleAddFragment}
         quickCaptureShortcut={quickCaptureShortcut}
+        saveShortcut={saveShortcut}
       />
 
       {isClawBotModalOpen && (

@@ -309,7 +309,7 @@ func startWeChat(deps *Dependencies) gin.HandlerFunc {
 				deps.Receiver, deps.WeChatAdapter = deps.WeChatInit()
 			}
 		}
-		if err := deps.WeChatAdapter.Start(c.Request.Context()); err != nil {
+		if err := deps.WeChatAdapter.Start(context.Background()); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -431,7 +431,7 @@ func loginWithQRCode(deps *Dependencies) gin.HandlerFunc {
 			deps.Receiver, deps.WeChatAdapter = deps.WeChatInit()
 		}
 		if deps.WeChatAdapter != nil {
-			if err := deps.WeChatAdapter.Start(c.Request.Context()); err != nil {
+			if err := deps.WeChatAdapter.Start(context.Background()); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to start wechat: " + err.Error()})
 				return
 			}
