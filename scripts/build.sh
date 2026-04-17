@@ -14,11 +14,15 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="$ROOT/dist"
 SWIFT_APP="$ROOT/cmd/desktop/macos/TFOApp"
 BUNDLE_ID="${TFO_BUNDLE_ID:-com.libi.tfo}"
-SIGN_IDENTITY="${TFO_SIGN_IDENTITY:--}"  # '-' = ad-hoc; set to 'Developer ID Application: ...' or '3rd Party Mac Developer Application: ...' for release
+SIGN_IDENTITY="${TFO_SIGN_IDENTITY:--}"  # '-' = ad-hoc; set to 'Developer ID Application: ...' for release
 INSTALLER_IDENTITY="${TFO_INSTALLER_IDENTITY:-}"  # '3rd Party Mac Developer Installer: ...' for App Store pkg
 ENTITLEMENTS="$ROOT/cmd/desktop/macos/TFOApp/TFOApp.entitlements"
 VERSION="${TFO_VERSION:-1.0.0}"
 BUILD_NUMBER="${TFO_BUILD_NUMBER:-$(date +%Y%m%d%H%M)}"
+# Notarization credentials (required for notarize step)
+APPLE_ID="${TFO_APPLE_ID:-}"                     # Apple ID email
+APPLE_TEAM_ID="${TFO_APPLE_TEAM_ID:-}"           # Developer Team ID
+APPLE_APP_PASSWORD="${TFO_APPLE_APP_PASSWORD:-}" # App-specific password
 LDFLAGS="-s -w"
 
 # --- parse args ---
@@ -106,6 +110,14 @@ build_desktop_darwin() {
     sed -i '' "/<key>CFBundleVersion<\/key>/{n;s/<string>.*<\/string>/<string>$BUILD_NUMBER<\/string>/;}" "$app/Info.plist"
     for f in "$SWIFT_APP/Resources/"*; do [[ -f "$f" ]] && cp "$f" "$app/Resources/"; done 2>/dev/null || true
 
+    # Select entitlements based on distribution target:
+    # - App Store (sandbox required): TFOApp.entitlements
+    # - Developer ID / ad-hoc (no sandbox): TFOApp-devid.entitlements
+    local app_entitlements="$ENTITLEMENTS"
+    if [[ -z "$INSTALLER_IDENTITY" ]]; then
+      app_entitlements="$ROOT/cmd/desktop/macos/TFOApp/TFOApp-devid.entitlements"
+    fi
+
     # Code sign the Go helper binary with direct entitlements (no sandbox).
     # The helper inherits the sandbox from the Swift launcher when run inside
     # the .app bundle, so it must NOT carry sandbox entitlements itself —
@@ -117,7 +129,7 @@ build_desktop_darwin() {
 
     # Code sign the .app bundle with Hardened Runtime
     codesign --force --deep --options runtime --sign "$SIGN_IDENTITY" \
-      --entitlements "$ENTITLEMENTS" \
+      --entitlements "$app_entitlements" \
       "$DIST/desktop/darwin_${arch}/TFO.app"
     echo "  ✓ $DIST/desktop/darwin_${arch}/TFO.app (signed: $SIGN_IDENTITY)"
 
@@ -128,7 +140,113 @@ build_desktop_darwin() {
         --sign "$INSTALLER_IDENTITY" "$pkg"
       echo "  ✓ $pkg (App Store package)"
     fi
+
+    # --- Create DMG ---
+    create_dmg "$DIST/desktop/darwin_${arch}" "$arch"
   done
+}
+
+# create_dmg builds a .dmg file with a drag-to-Applications layout.
+# $1 = directory containing TFO.app, $2 = arch label
+create_dmg() {
+  local dir="$1" arch="$2"
+  local dmg_name="TFO-${VERSION}-macOS-${arch}.dmg"
+  local dmg_path="$DIST/$dmg_name"
+  local tmp_dmg="$DIST/.tmp_${arch}.dmg"
+  local vol_name="TFO ${VERSION}"
+  local staging="$DIST/.dmg_staging_${arch}"
+
+  echo "  ● Creating DMG: $dmg_name"
+
+  # Prepare staging directory
+  rm -rf "$staging"
+  mkdir -p "$staging"
+  cp -a "$dir/TFO.app" "$staging/"
+  ln -s /Applications "$staging/Applications"
+
+  # Create temporary read-write DMG
+  rm -f "$tmp_dmg" "$dmg_path"
+  hdiutil create -srcfolder "$staging" -volname "$vol_name" \
+    -fs HFS+ -fsargs "-c c=64,a=16,e=16" \
+    -format UDRW -size 200m "$tmp_dmg" >/dev/null
+
+  # Mount and customise appearance
+  local device
+  device=$(hdiutil attach -readwrite -noverify -noautoopen "$tmp_dmg" \
+    | grep -E '^/dev/' | head -1 | awk '{print $1}')
+
+  # AppleScript to set icon positions and window size
+  osascript <<EOF
+tell application "Finder"
+  tell disk "$vol_name"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set bounds of container window to {100, 100, 640, 400}
+    set theViewOptions to icon view options of container window
+    set arrangement of theViewOptions to not arranged
+    set icon size of theViewOptions to 80
+    set position of item "TFO.app" of container window to {140, 150}
+    set position of item "Applications" of container window to {400, 150}
+    close
+    open
+    update without registering applications
+    delay 1
+    close
+  end tell
+end tell
+EOF
+
+  # Set volume icon if available
+  local vol_icon="$ROOT/cmd/desktop/icons/tfo.icns"
+  if [[ -f "$vol_icon" ]]; then
+    cp "$vol_icon" "/Volumes/$vol_name/.VolumeIcon.icns"
+    SetFile -c icnC "/Volumes/$vol_name/.VolumeIcon.icns" 2>/dev/null || true
+    SetFile -a C "/Volumes/$vol_name" 2>/dev/null || true
+  fi
+
+  # Unmount, convert to compressed read-only DMG
+  hdiutil detach "$device" -quiet
+  hdiutil convert "$tmp_dmg" -format UDZO -imagekey zlib-level=9 -o "$dmg_path" >/dev/null
+
+  rm -f "$tmp_dmg"
+  rm -rf "$staging"
+
+  # Sign the DMG itself
+  if [[ "$SIGN_IDENTITY" != "-" ]]; then
+    codesign --force --sign "$SIGN_IDENTITY" "$dmg_path"
+    echo "  ✓ DMG signed"
+  fi
+
+  # Notarize if credentials are available
+  notarize_dmg "$dmg_path"
+
+  echo "  ✓ $dmg_path"
+}
+
+# notarize_dmg submits the DMG to Apple notary service and staples the ticket.
+notarize_dmg() {
+  local dmg="$1"
+  if [[ -z "$APPLE_ID" || -z "$APPLE_TEAM_ID" || -z "$APPLE_APP_PASSWORD" ]]; then
+    echo "  ⚠ Skipping notarization (set TFO_APPLE_ID, TFO_APPLE_TEAM_ID, TFO_APPLE_APP_PASSWORD)"
+    return
+  fi
+  if [[ "$SIGN_IDENTITY" = "-" ]]; then
+    echo "  ⚠ Skipping notarization (ad-hoc signing)"
+    return
+  fi
+
+  echo "  ● Submitting to Apple notary service..."
+  xcrun notarytool submit "$dmg" \
+    --apple-id "$APPLE_ID" \
+    --team-id "$APPLE_TEAM_ID" \
+    --password "$APPLE_APP_PASSWORD" \
+    --wait
+
+  echo "  ● Stapling notarization ticket..."
+  xcrun stapler staple "$dmg"
+  echo "  ✓ Notarization complete"
 }
 
 build_desktop() {
