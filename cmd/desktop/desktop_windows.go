@@ -16,6 +16,7 @@ import (
 	"unsafe"
 
 	"github.com/libi/tfo/internal/app"
+	"github.com/libi/tfo/internal/config"
 
 	"github.com/energye/systray"
 	"github.com/wailsapp/wails/v2"
@@ -214,6 +215,109 @@ func (p *PopupAPI) HidePopup() {
 func (p *PopupAPI) Quit() {
 	hidePopup()
 	go systray.Quit()
+}
+
+// ChooseDataDir shows a native folder picker and updates the data directory.
+func (p *PopupAPI) ChooseDataDir() {
+	hidePopup()
+	// Determine current data directory to pre-select in the picker.
+	currentDir := config.DefaultDataDir()
+	if bc, _, err := config.LoadBootstrap(); err == nil && bc.DataDir != "" {
+		currentDir = bc.DataDir
+	}
+	go func() {
+		dir := chooseDataDirWindows(currentDir)
+		if dir == "" {
+			return
+		}
+		slog.Info("user chose new data directory", "dir", dir)
+		bootstrapDir := config.DefaultBootstrapDir()
+		bc := &config.BootstrapConfig{DataDir: dir}
+		if err := config.SaveBootstrap(bootstrapDir, bc); err != nil {
+			slog.Error("failed to save bootstrap config", "error", err)
+			return
+		}
+		// Restart server with new data directory
+		serverReady.Store(false)
+		if err := p.state.restartServer(); err != nil {
+			slog.Error("failed to restart server", "error", err)
+			return
+		}
+		openDashboardWhenReady(p.state, desktopStartupReadyTimeout, false, func(url string) {
+			serverReady.Store(true)
+			if popupCtx != nil {
+				wailsRuntime.EventsEmit(popupCtx, "server-ready")
+			}
+		}, nil)
+	}()
+}
+
+// ---------------------------------------------------------------------------
+// Native folder picker (Windows)
+// ---------------------------------------------------------------------------
+
+func chooseDataDirWindows(defaultDir string) string {
+	ole32 := syscall.NewLazyDLL("ole32.dll")
+	coInitialize := ole32.NewProc("CoInitializeEx")
+	coUninitialize := ole32.NewProc("CoUninitialize")
+
+	coInitialize.Call(0, 0)
+	defer coUninitialize.Call()
+
+	shell32 := syscall.NewLazyDLL("shell32.dll")
+	shBrowseForFolder := shell32.NewProc("SHBrowseForFolderW")
+	shGetPathFromIDList := shell32.NewProc("SHGetPathFromIDListW")
+
+	type browseInfo struct {
+		HwndOwner    uintptr
+		PidlRoot     uintptr
+		DisplayName  *uint16
+		Title        *uint16
+		Flags        uint32
+		CallbackFunc uintptr
+		LParam       uintptr
+		Image        int32
+	}
+
+	title := "Choose a folder to store TFO data"
+	if currentLang == LangZH {
+		title = "请选择 TFO 数据保存目录"
+	}
+	titlePtr, _ := syscall.UTF16PtrFromString(title)
+	displayName := make([]uint16, syscall.MAX_PATH)
+
+	// Prepare default directory as UTF-16 for the callback
+	defaultDirPtr, _ := syscall.UTF16PtrFromString(defaultDir)
+
+	// BFFM_INITIALIZED = 1, BFFM_SETSELECTIONW = 0x0467
+	callback := syscall.NewCallback(func(hwnd uintptr, msg uint32, lp uintptr, data uintptr) uintptr {
+		const bffmInitialized = 1
+		const bffmSetSelectionW = 0x0467
+		if msg == bffmInitialized {
+			user32 := syscall.NewLazyDLL("user32.dll")
+			sendMessage := user32.NewProc("SendMessageW")
+			sendMessage.Call(hwnd, bffmSetSelectionW, 1, data)
+		}
+		return 0
+	})
+
+	bi := browseInfo{
+		DisplayName:  &displayName[0],
+		Title:        titlePtr,
+		Flags:        0x00000001 | 0x00000010 | 0x00000040, // BIF_RETURNONLYFSDIRS | BIF_EDITBOX | BIF_NEWDIALOGSTYLE
+		CallbackFunc: callback,
+		LParam:       uintptr(unsafe.Pointer(defaultDirPtr)),
+	}
+
+	pidl, _, _ := shBrowseForFolder.Call(uintptr(unsafe.Pointer(&bi)))
+	if pidl == 0 {
+		return ""
+	}
+
+	buf := make([]uint16, syscall.MAX_PATH)
+	shGetPathFromIDList.Call(pidl, uintptr(unsafe.Pointer(&buf[0])))
+
+	return syscall.UTF16ToString(buf)
 }
 
 // ---------------------------------------------------------------------------

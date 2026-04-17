@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	goqrcode "github.com/skip2/go-qrcode"
@@ -68,6 +69,7 @@ func New(deps *Dependencies) *gin.Engine {
 		api.PUT("/config", updateConfig(deps))
 		api.PUT("/bootstrap", updateBootstrap(deps))
 		api.POST("/browse-directory", browseDirectory())
+		api.POST("/request-dir-picker", requestNativeDirPicker(deps))
 		api.GET("/wechat/states", getChannelStates(deps))
 		api.POST("/wechat/start", startWeChat(deps))
 		api.POST("/wechat/stop", stopWeChat(deps))
@@ -79,6 +81,35 @@ func New(deps *Dependencies) *gin.Engine {
 	// Serve embedded frontend static files (production mode).
 	// In dev mode FrontendFS is nil and frontend runs separately via `npm run dev`.
 	if deps.FrontendFS != nil {
+		// serveFile reads a file from the embedded FS and writes it directly to the
+		// response. Unlike http.ServeFileFS, this does not depend on the request URL
+		// path, so we can serve settings.html when the request path is /settings.
+		serveFile := func(c *gin.Context, name string) {
+			data, err := fs.ReadFile(deps.FrontendFS, name)
+			if err != nil {
+				c.Status(http.StatusNotFound)
+				return
+			}
+			contentType := "application/octet-stream"
+			switch {
+			case strings.HasSuffix(name, ".html"):
+				contentType = "text/html; charset=utf-8"
+			case strings.HasSuffix(name, ".js"):
+				contentType = "application/javascript"
+			case strings.HasSuffix(name, ".css"):
+				contentType = "text/css"
+			case strings.HasSuffix(name, ".json"):
+				contentType = "application/json"
+			case strings.HasSuffix(name, ".svg"):
+				contentType = "image/svg+xml"
+			case strings.HasSuffix(name, ".png"):
+				contentType = "image/png"
+			case strings.HasSuffix(name, ".woff2"):
+				contentType = "font/woff2"
+			}
+			c.Data(http.StatusOK, contentType, data)
+		}
+
 		r.NoRoute(func(c *gin.Context) {
 			path := c.Request.URL.Path
 			// Don't serve static files for API routes
@@ -95,9 +126,16 @@ func New(deps *Dependencies) *gin.Engine {
 					http.ServeFileFS(c.Writer, c.Request, deps.FrontendFS, trimmedPath)
 					return
 				}
+				// Next.js static export produces e.g. settings.html for /settings routes.
+				// Try appending .html so that direct navigation works.
+				htmlPath := trimmedPath + ".html"
+				if _, err := fs.Stat(deps.FrontendFS, htmlPath); err == nil {
+					serveFile(c, htmlPath)
+					return
+				}
 			}
 			// Fallback to index.html for client-side routing
-			http.ServeFileFS(c.Writer, c.Request, deps.FrontendFS, "index.html")
+			serveFile(c, "index.html")
 		})
 	}
 
@@ -259,12 +297,14 @@ func getConfig(deps *Dependencies) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// DataDir has json:"-" in Config, so wrap it for the API response
 		type configResponse struct {
-			DataDir string `json:"dataDir"`
+			DataDir   string `json:"dataDir"`
+			Sandboxed bool   `json:"sandboxed"`
 			*config.Config
 		}
 		c.JSON(http.StatusOK, configResponse{
-			DataDir: deps.Config.DataDir,
-			Config:  deps.Config,
+			DataDir:   deps.Config.DataDir,
+			Sandboxed: os.Getenv("APP_SANDBOX_CONTAINER_ID") != "",
+			Config:    deps.Config,
 		})
 	}
 }
@@ -464,6 +504,58 @@ func loginWithQRCode(deps *Dependencies) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"status": "connected"})
+	}
+}
+
+// requestNativeDirPicker creates a signal file that the native Swift host app
+// watches. When detected, the host shows an NSOpenPanel, saves a security-scoped
+// bookmark, and writes the chosen path to a response file. This endpoint polls
+// for that response and returns it to the frontend caller.
+func requestNativeDirPicker(deps *Dependencies) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		dataDir := deps.Config.DataDir
+		if dataDir == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "data dir not configured"})
+			return
+		}
+
+		reqFile := filepath.Join(dataDir, ".dir-pick-request")
+		respFile := filepath.Join(dataDir, ".dir-pick-response")
+
+		// Clean up any stale files
+		os.Remove(reqFile)
+		os.Remove(respFile)
+
+		// Write request signal
+		if err := os.WriteFile(reqFile, []byte("pick"), 0o644); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create request signal"})
+			return
+		}
+
+		// Poll for response (max 120s — user needs time to interact with the dialog)
+		deadline := time.Now().Add(120 * time.Second)
+		for time.Now().Before(deadline) {
+			data, err := os.ReadFile(respFile)
+			if err == nil {
+				// Clean up signal files
+				os.Remove(reqFile)
+				os.Remove(respFile)
+
+				result := strings.TrimSpace(string(data))
+				if result == "" || result == "__cancelled__" {
+					c.JSON(http.StatusOK, gin.H{"path": "", "cancelled": true})
+					return
+				}
+				c.JSON(http.StatusOK, gin.H{"path": result, "cancelled": false})
+				return
+			}
+			time.Sleep(200 * time.Millisecond)
+		}
+
+		// Timed out
+		os.Remove(reqFile)
+		os.Remove(respFile)
+		c.JSON(http.StatusGatewayTimeout, gin.H{"error": "native directory picker timed out"})
 	}
 }
 

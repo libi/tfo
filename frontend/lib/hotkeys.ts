@@ -8,7 +8,8 @@ function normalizeMainKey(key: string) {
     return key[0].toUpperCase() + key.slice(1);
 }
 
-export function normalizeShortcut(shortcut: string) {
+export function normalizeShortcut(shortcut: string | undefined | null): string {
+    if (!shortcut) return '';
     const parts = shortcut
         .split('+')
         .map(part => part.trim())

@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import Cocoa
 
 // MARK: - Popover Content View Controller
@@ -47,6 +48,7 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
     private var scrollView: NSScrollView!
     private var submitButton: NSButton!
     private var settingsButton: NSButton!
+    private var folderButton: NSButton!
     private var quitButton: NSButton!
     private var placeholderLabel: NSTextField!
     private var statusDot: NSView!
@@ -107,7 +109,20 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
         )
         settingsButton.frame = NSRect(
             x: padding + 16, y: (bottomBarHeight - 28) / 2, width: 28, height: 28)
+        settingsButton.toolTip = L10n.isZH ? "打开设置" : "Settings"
         bottomBar.addSubview(settingsButton)
+
+        // Folder button (data directory)
+        folderButton = makeIconButton(
+            symbolName: "folder",
+            fallbackTitle: "📁",
+            accessibilityLabel: "Data Directory",
+            action: #selector(folderClicked)
+        )
+        folderButton.frame = NSRect(
+            x: padding + 16 + 36, y: (bottomBarHeight - 28) / 2, width: 28, height: 28)
+        folderButton.toolTip = L10n.isZH ? "修改数据目录" : "Change Data Directory"
+        bottomBar.addSubview(folderButton)
 
         // Quit button (power icon)
         quitButton = makeIconButton(
@@ -117,7 +132,8 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
             action: #selector(quitClicked)
         )
         quitButton.frame = NSRect(
-            x: padding + 16 + 36, y: (bottomBarHeight - 28) / 2, width: 28, height: 28)
+            x: padding + 16 + 36 + 36, y: (bottomBarHeight - 28) / 2, width: 28, height: 28)
+        quitButton.toolTip = L10n.isZH ? "退出" : "Quit"
         bottomBar.addSubview(quitButton)
 
         // Submit button (right side) — paper plane icon
@@ -140,6 +156,7 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
             submitButton.title = "➤"
             submitButton.font = NSFont.systemFont(ofSize: 15)
         }
+        submitButton.toolTip = L10n.isZH ? "发送" : "Send"
         bottomBar.addSubview(submitButton)
 
         view.addSubview(bottomBar)
@@ -350,6 +367,10 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
         appDelegate?.openDashboard()
     }
 
+    @objc private func folderClicked() {
+        appDelegate?.chooseDataDirectory()
+    }
+
     @objc private func quitClicked() {
         appDelegate?.quitApp()
     }
@@ -400,8 +421,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     fileprivate(set) var isServerRunning = false
     private var isServerStarting = false
     private var startupProbeID = UUID()
-    private var eventMonitor: Any?
-    private var globalHotkeyMonitor: Any?
+    private var localEventMonitor: Any?
+    private var hotkeyRef: EventHotKeyRef?
 
     // MARK: - Lifecycle
 
@@ -415,11 +436,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         stopGoServer()
-        if let monitor = eventMonitor {
+        if let monitor = localEventMonitor {
             NSEvent.removeMonitor(monitor)
         }
-        if let hotkey = globalHotkeyMonitor {
-            NSEvent.removeMonitor(hotkey)
+        if let ref = hotkeyRef {
+            UnregisterEventHotKey(ref)
         }
     }
 
@@ -427,34 +448,74 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    // MARK: - Global Hotkey (Option+Shift+F)
+    // MARK: - Global Hotkey (Option+Shift+F) via Carbon RegisterEventHotKey
+    // Carbon hotkeys work in sandboxed apps without Accessibility permission.
 
     private func registerGlobalHotkey() {
-        // Monitor key events globally (when app is not focused).
-        globalHotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) {
-            [weak self] event in
-            self?.handleHotkeyEvent(event)
+        // Install a Carbon event handler for hotkey events.
+        let hotKeyID = EventHotKeyID(
+            signature: OSType(0x5446_4F48),  // 'TFOH'
+            id: 1
+        )
+
+        var eventType = EventTypeSpec(
+            eventClass: OSType(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
+
+        // The handler callback — calls togglePopover on the AppDelegate.
+        let handler: EventHandlerUPP = { _, event, userData -> OSStatus in
+            guard let userData = userData else { return OSStatus(eventNotHandledErr) }
+            let appDelegate = Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
+            DispatchQueue.main.async {
+                appDelegate.togglePopover()
+            }
+            return noErr
         }
-        // Also monitor when app is focused (local).
-        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            if self?.handleHotkeyEvent(event) == true {
-                return nil  // swallow the event
+
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        InstallEventHandler(
+            GetApplicationEventTarget(),
+            handler,
+            1,
+            &eventType,
+            selfPtr,
+            nil
+        )
+
+        // Register Option+Shift+F (keycode 3 = 'F')
+        let modifiers: UInt32 = UInt32(optionKey | shiftKey)
+        var hotKeyRefTemp: EventHotKeyRef?
+        let status = RegisterEventHotKey(
+            UInt32(kVK_ANSI_F),
+            modifiers,
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &hotKeyRefTemp
+        )
+
+        if status == noErr {
+            hotkeyRef = hotKeyRefTemp
+            NSLog("Global hotkey Option+Shift+F registered successfully")
+        } else {
+            NSLog("Failed to register global hotkey, status: %d", status)
+        }
+
+        // Local monitor for when the app is focused (Carbon hotkey also fires, but
+        // this lets us swallow the event from the responder chain).
+        localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
+            [weak self] event in
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            let required: NSEvent.ModifierFlags = [.option, .shift]
+            if flags == required,
+                event.charactersIgnoringModifiers?.lowercased() == "f"
+            {
+                self?.togglePopover()
+                return nil  // swallow
             }
             return event
         }
-    }
-
-    @discardableResult
-    private func handleHotkeyEvent(_ event: NSEvent) -> Bool {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let required: NSEvent.ModifierFlags = [.option, .shift]
-        guard flags == required,
-            event.charactersIgnoringModifiers?.lowercased() == "f"
-        else { return false }
-        DispatchQueue.main.async { [weak self] in
-            self?.togglePopover()
-        }
-        return true
     }
 
     // MARK: - Status Bar & Popover Setup
@@ -636,6 +697,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
+    func chooseDataDirectory() {
+        closePopover()
+
+        let alert = NSAlert()
+        alert.messageText = L10n.isZH ? "修改数据目录" : "Change Data Directory"
+        alert.informativeText =
+            L10n.isZH
+            ? "您正在修改数据目录，选择新目录后将重启服务。\n当前目录: \(tfoDataDir())"
+            : "You are changing the data directory. The service will restart after selection.\nCurrent: \(tfoDataDir())"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: L10n.isZH ? "选择目录" : "Choose Folder")
+        alert.addButton(withTitle: L10n.isZH ? "取消" : "Cancel")
+
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return }
+
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = L10n.isZH ? "选择" : "Choose"
+        panel.message = L10n.isZH ? "请选择 TFO 数据保存目录" : "Choose a folder to store TFO data"
+
+        let result = panel.runModal()
+        guard result == .OK, let url = panel.url else { return }
+
+        let newDir = url.path
+        NSLog("User chose new data directory: %@", newDir)
+
+        // Persist via bookmark for sandbox access
+        saveSecurityBookmark(for: url)
+        customDataDir = newDir
+        UserDefaults.standard.set(newDir, forKey: "TFOCustomDataDir")
+
+        // Restart server with new directory
+        stopGoServer()
+        startGoServer(autoOpenDashboard: false)
+    }
+
     // MARK: - Helpers
 
     private func serverBinaryPath() -> String? {
@@ -677,17 +779,58 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return nil
     }
 
+    private var customDataDir: String? = UserDefaults.standard.string(forKey: "TFOCustomDataDir")
+
     private var isSandboxed: Bool {
         ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
     }
 
-    private func tfoDataDir() -> String {
+    fileprivate func tfoDataDir() -> String {
+        // If user has chosen a custom directory, restore bookmark and use it
+        if let custom = customDataDir, !custom.isEmpty {
+            restoreSecurityBookmark()
+            return custom
+        }
         let home = FileManager.default.homeDirectoryForCurrentUser
         if isSandboxed {
             let appSupport = home.appendingPathComponent("Library/Application Support/TFO")
             return appSupport.path
         }
         return home.appendingPathComponent(".tfo").path
+    }
+
+    private func saveSecurityBookmark(for url: URL) {
+        do {
+            let bookmarkData = try url.bookmarkData(
+                options: .withSecurityScope,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
+            UserDefaults.standard.set(bookmarkData, forKey: "TFODataDirBookmark")
+        } catch {
+            NSLog("Failed to save security bookmark: %@", error.localizedDescription)
+        }
+    }
+
+    private func restoreSecurityBookmark() {
+        guard let bookmarkData = UserDefaults.standard.data(forKey: "TFODataDirBookmark") else {
+            return
+        }
+        do {
+            var isStale = false
+            let url = try URL(
+                resolvingBookmarkData: bookmarkData,
+                options: .withSecurityScope,
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            )
+            if isStale {
+                saveSecurityBookmark(for: url)
+            }
+            _ = url.startAccessingSecurityScopedResource()
+        } catch {
+            NSLog("Failed to restore security bookmark: %@", error.localizedDescription)
+        }
     }
 
     private func ensureDirectory(at path: String) {
@@ -727,17 +870,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if Date() >= deadline {
+            // Deadline passed — stop showing "starting" but keep polling in background
+            // so the status can recover if the server becomes ready later.
             DispatchQueue.main.async { [weak self] in
                 guard let self = self, probeID == self.startupProbeID else { return }
-                self.isServerStarting = false
-                self.isServerRunning = false
-                self.updatePopoverStatus()
-                NSLog("WARN: TFO server readiness check timed out")
+                if self.isServerStarting {
+                    self.isServerStarting = false
+                    self.updatePopoverStatus()
+                    NSLog(
+                        "WARN: TFO server readiness initial check timed out, continuing background polling"
+                    )
+                }
             }
-            return
         }
 
-        Thread.sleep(forTimeInterval: 0.25)
+        // Keep polling as long as the process is alive (slower interval after deadline).
+        let interval: TimeInterval = Date() >= deadline ? 2.0 : 0.25
+        Thread.sleep(forTimeInterval: interval)
         pollServerReadiness(
             probeID: probeID, deadline: deadline, autoOpenDashboard: autoOpenDashboard)
     }
@@ -748,7 +897,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         var request = URLRequest(url: url)
-        request.timeoutInterval = 0.8
+        request.timeoutInterval = 2.0
         request.cachePolicy = .reloadIgnoringLocalCacheData
 
         let semaphore = DispatchSemaphore(value: 0)

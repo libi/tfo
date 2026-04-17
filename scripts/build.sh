@@ -106,9 +106,13 @@ build_desktop_darwin() {
     sed -i '' "/<key>CFBundleVersion<\/key>/{n;s/<string>.*<\/string>/<string>$BUILD_NUMBER<\/string>/;}" "$app/Info.plist"
     for f in "$SWIFT_APP/Resources/"*; do [[ -f "$f" ]] && cp "$f" "$app/Resources/"; done 2>/dev/null || true
 
-    # Code sign the Go helper binary first
+    # Code sign the Go helper binary with direct entitlements (no sandbox).
+    # The helper inherits the sandbox from the Swift launcher when run inside
+    # the .app bundle, so it must NOT carry sandbox entitlements itself —
+    # otherwise it crashes with SIGILL when the codesign attributes conflict.
+    local helper_entitlements="$ROOT/cmd/desktop/macos/TFOApp/TFOApp-direct.entitlements"
     codesign --force --options runtime --sign "$SIGN_IDENTITY" \
-      --entitlements "$ENTITLEMENTS" \
+      --entitlements "$helper_entitlements" \
       "$app/Resources/tfo-desktop"
 
     # Code sign the .app bundle with Hardened Runtime
