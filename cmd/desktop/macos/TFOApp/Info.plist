@@ -29,9 +29,15 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2025 TFO. All rights reserved.</string>
+    <string>Copyright © 2026 TFO. All rights reserved.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>NSPrivacyPolicyURL</key>
+    <string>https://tfo.cc</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>TFO uses a local web server to render the application interface.</string>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSExceptionDomains</key>

@@ -1,0 +1,248 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to build and release (e.g. v1.0.0)'
+        required: true
+        type: string
+      build_target:
+        description: 'What to build'
+        required: true
+        type: choice
+        options:
+          - all
+          - cli
+          - desktop
+        default: all
+      draft:
+        description: 'Create as draft release'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: '1.25'
+  NODE_VERSION: '20'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Prepare: checkout tag, extract version
+  # ---------------------------------------------------------------------------
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      build_number: ${{ steps.meta.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - id: meta
+        run: |
+          VERSION="${{ inputs.tag }}"
+          VERSION="${VERSION#v}"  # strip leading 'v'
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_number=$(date +%Y%m%d%H%M)" >> "$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # Build frontend (shared across all jobs)
+  # ---------------------------------------------------------------------------
+  frontend:
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: cd frontend && npm ci && npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-out
+          path: frontend/out
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # CLI: cross-compile for all platforms
+  # ---------------------------------------------------------------------------
+  cli:
+    if: inputs.build_target == 'all' || inputs.build_target == 'cli'
+    needs: [prepare, frontend]
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: arm64
+    runs-on: ubuntu-latest
+    env:
+      TFO_VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-out
+          path: frontend/out
+      - name: Build CLI
+        run: |
+          EXT=""
+          [[ "${{ matrix.goos }}" == "windows" ]] && EXT=".exe"
+          OUT="dist/tfo-${{ matrix.goos }}-${{ matrix.goarch }}${EXT}"
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+            go build -trimpath -ldflags "-s -w" -o "$OUT" ./cmd/tfo
+          echo "artifact=$OUT" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/tfo-*
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Desktop macOS: build .app bundle (arm64 + amd64)
+  # ---------------------------------------------------------------------------
+  desktop-darwin:
+    if: inputs.build_target == 'all' || inputs.build_target == 'desktop'
+    needs: [prepare, frontend]
+    strategy:
+      matrix:
+        include:
+          - goarch: arm64
+            swift_arch: arm64
+          - goarch: amd64
+            swift_arch: x86_64
+    runs-on: macos-14
+    env:
+      TFO_VERSION: ${{ needs.prepare.outputs.version }}
+      TFO_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-out
+          path: frontend/out
+      - name: Build .app bundle
+        run: |
+          BUNDLE_ID="${TFO_BUNDLE_ID:-com.libi.tfo}"
+          SWIFT_APP="cmd/desktop/macos/TFOApp"
+          APP="dist/TFO.app/Contents"
+          mkdir -p "$APP/MacOS" "$APP/Resources"
+
+          # Go binary
+          CGO_ENABLED=0 GOOS=darwin GOARCH=${{ matrix.goarch }} \
+            go build -trimpath -ldflags "-s -w" -o "$APP/Resources/tfo-desktop" ./cmd/desktop
+
+          # Swift launcher
+          cd "$SWIFT_APP"
+          swift build -c release --arch ${{ matrix.swift_arch }} 2>&1 | tail -3
+          cd "$GITHUB_WORKSPACE"
+          cp "$SWIFT_APP/.build/${{ matrix.swift_arch }}-apple-macosx/release/TFOApp" "$APP/MacOS/TFOApp"
+
+          # Info.plist
+          sed -e "s/\$(PRODUCT_BUNDLE_IDENTIFIER)/$BUNDLE_ID/g" \
+              -e "s/<string>1.0.0<\/string>/<string>$TFO_VERSION<\/string>/" \
+              "$SWIFT_APP/Info.plist" > "$APP/Info.plist"
+          sed -i '' "/<key>CFBundleVersion<\/key>/{n;s/<string>.*<\/string>/<string>$TFO_BUILD_NUMBER<\/string>/;}" "$APP/Info.plist"
+
+          # Resources
+          for f in "$SWIFT_APP/Resources/"*; do [[ -f "$f" ]] && cp "$f" "$APP/Resources/"; done 2>/dev/null || true
+
+          # Ad-hoc sign (CI has no certs; real signing done locally or via separate workflow)
+          codesign --force --deep --options runtime --sign - \
+            --entitlements "$SWIFT_APP/TFOApp.entitlements" dist/TFO.app
+
+          # Create zip for release
+          cd dist && zip -r -y "TFO-macos-${{ matrix.goarch }}.zip" TFO.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-darwin-${{ matrix.goarch }}
+          path: dist/TFO-macos-*.zip
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Desktop Windows: build exe
+  # ---------------------------------------------------------------------------
+  desktop-windows:
+    if: inputs.build_target == 'all' || inputs.build_target == 'desktop'
+    needs: [prepare, frontend]
+    runs-on: ubuntu-latest
+    env:
+      TFO_VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-out
+          path: frontend/out
+      - name: Build Windows desktop
+        run: |
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
+            go build -trimpath -ldflags "-s -w -H windowsgui" \
+            -o "dist/tfo-desktop-windows-amd64.exe" ./cmd/desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows-amd64
+          path: dist/tfo-desktop-windows-*.exe
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
+  # Create GitHub Release and upload all artifacts
+  # ---------------------------------------------------------------------------
+  release:
+    needs: [prepare, cli, desktop-darwin, desktop-windows]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: '{cli-*,desktop-*}'
+          merge-multiple: true
+      - name: List artifacts
+        run: find artifacts -type f | head -30 || ls -lR artifacts
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: TFO ${{ inputs.tag }}
+          draft: ${{ inputs.draft }}
+          generate_release_notes: true
+          files: |
+            artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

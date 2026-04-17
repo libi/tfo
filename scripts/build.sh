@@ -14,6 +14,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST="$ROOT/dist"
 SWIFT_APP="$ROOT/cmd/desktop/macos/TFOApp"
 BUNDLE_ID="${TFO_BUNDLE_ID:-com.libi.tfo}"
+SIGN_IDENTITY="${TFO_SIGN_IDENTITY:--}"  # '-' = ad-hoc; set to 'Developer ID Application: ...' or '3rd Party Mac Developer Application: ...' for release
+INSTALLER_IDENTITY="${TFO_INSTALLER_IDENTITY:-}"  # '3rd Party Mac Developer Installer: ...' for App Store pkg
+ENTITLEMENTS="$ROOT/cmd/desktop/macos/TFOApp/TFOApp.entitlements"
+VERSION="${TFO_VERSION:-1.0.0}"
+BUILD_NUMBER="${TFO_BUILD_NUMBER:-$(date +%Y%m%d%H%M)}"
 LDFLAGS="-s -w"
 
 # --- parse args ---
@@ -93,12 +98,32 @@ build_desktop_darwin() {
     cp "$SWIFT_APP/.build/${swift_arch}-apple-macosx/release/TFOApp" "$app/MacOS/TFOApp"
 
     # Info.plist & resources
-    sed "s/\$(PRODUCT_BUNDLE_IDENTIFIER)/$BUNDLE_ID/g" "$SWIFT_APP/Info.plist" > "$app/Info.plist"
+    sed -e "s/\$(PRODUCT_BUNDLE_IDENTIFIER)/$BUNDLE_ID/g" \
+        -e "s/<string>1.0.0<\/string>/<string>$VERSION<\/string>/" \
+        -e "s/<key>CFBundleVersion<\/key>\n.*<string>.*<\/string>/<key>CFBundleVersion<\/key>\n    <string>$BUILD_NUMBER<\/string>/" \
+        "$SWIFT_APP/Info.plist" > "$app/Info.plist"
+    # Patch CFBundleVersion separately for reliable replacement
+    sed -i '' "/<key>CFBundleVersion<\/key>/{n;s/<string>.*<\/string>/<string>$BUILD_NUMBER<\/string>/;}" "$app/Info.plist"
     for f in "$SWIFT_APP/Resources/"*; do [[ -f "$f" ]] && cp "$f" "$app/Resources/"; done 2>/dev/null || true
 
-    # Ad-hoc code sign the .app bundle (required by macOS)
-    codesign --force --deep --sign - "$DIST/desktop/darwin_${arch}/TFO.app"
-    echo "  ✓ $DIST/desktop/darwin_${arch}/TFO.app"
+    # Code sign the Go helper binary first
+    codesign --force --options runtime --sign "$SIGN_IDENTITY" \
+      --entitlements "$ENTITLEMENTS" \
+      "$app/Resources/tfo-desktop"
+
+    # Code sign the .app bundle with Hardened Runtime
+    codesign --force --deep --options runtime --sign "$SIGN_IDENTITY" \
+      --entitlements "$ENTITLEMENTS" \
+      "$DIST/desktop/darwin_${arch}/TFO.app"
+    echo "  ✓ $DIST/desktop/darwin_${arch}/TFO.app (signed: $SIGN_IDENTITY)"
+
+    # Build .pkg for App Store submission if installer identity is set
+    if [[ -n "$INSTALLER_IDENTITY" ]]; then
+      local pkg="$DIST/desktop/darwin_${arch}/TFO.pkg"
+      productbuild --component "$DIST/desktop/darwin_${arch}/TFO.app" /Applications \
+        --sign "$INSTALLER_IDENTITY" "$pkg"
+      echo "  ✓ $pkg (App Store package)"
+    fi
   done
 }
 
