@@ -180,7 +180,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-windows-amd64
-          path: dist/desktop/windows_amd64/*
+          path: dist/desktop/windows_amd64/TFO-*
           retention-days: 1
 
   # ---------------------------------------------------------------------------

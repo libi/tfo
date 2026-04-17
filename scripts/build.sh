@@ -59,7 +59,7 @@ build_cli() {
     os="${target%/*}"; arch="${target#*/}"
     should_build "$os" "$arch" || continue
     ext=""; [[ "$os" = "windows" ]] && ext=".exe"
-    build_go "$os" "$arch" ./cmd/tfo "$DIST/cli/${os}_${arch}/tfo${ext}"
+    build_go "$os" "$arch" ./cmd/tfo "$DIST/cli/${os}_${arch}/tfo-${VERSION}-${os}-${arch}${ext}"
   done
 }
 
@@ -78,8 +78,8 @@ build_desktop_windows() {
     CGO_ENABLED=0 GOOS=windows GOARCH="$arch" go build -trimpath \
       -tags production \
       -ldflags "$LDFLAGS -H windowsgui" \
-      -o "$DIST/desktop/windows_${arch}/tfo-desktop.exe" ./cmd/desktop
-    echo "  ✓ $DIST/desktop/windows_${arch}/tfo-desktop.exe"
+      -o "$DIST/desktop/windows_${arch}/TFO-${VERSION}-windows-${arch}-desktop.exe" ./cmd/desktop
+    echo "  ✓ $DIST/desktop/windows_${arch}/TFO-${VERSION}-windows-${arch}-desktop.exe"
   done
 }
 
