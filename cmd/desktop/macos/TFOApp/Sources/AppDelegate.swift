@@ -3,8 +3,61 @@ import Cocoa
 
 // MARK: - Popover Content View Controller
 
+/// Parsed shortcut representation
+private struct ParsedShortcut {
+    var ctrl: Bool = false
+    var alt: Bool = false
+    var shift: Bool = false
+    var cmd: Bool = false
+    var key: String = ""
+
+    static func parse(_ shortcut: String) -> ParsedShortcut {
+        var result = ParsedShortcut()
+        let parts = shortcut.components(separatedBy: "+").map {
+            $0.trimmingCharacters(in: .whitespaces).lowercased()
+        }
+        for part in parts {
+            switch part {
+            case "ctrl", "control": result.ctrl = true
+            case "alt", "option": result.alt = true
+            case "shift": result.shift = true
+            case "cmd", "command", "meta": result.cmd = true
+            default: result.key = part
+            }
+        }
+        return result
+    }
+
+    func matches(event: NSEvent) -> Bool {
+        let mods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard mods.contains(.control) == ctrl,
+            mods.contains(.option) == alt,
+            mods.contains(.shift) == shift,
+            mods.contains(.command) == cmd
+        else { return false }
+        guard let chars = event.charactersIgnoringModifiers?.lowercased() else { return false }
+        // Map special key names
+        let eventKey: String
+        switch chars {
+        case "\r": eventKey = "enter"
+        case " ": eventKey = "space"
+        default: eventKey = chars
+        }
+        return eventKey == key
+    }
+}
+
 private final class ShortcutTextView: NSTextView {
+    var onSubmit: (() -> Void)?
+    var submitShortcut: ParsedShortcut = ParsedShortcut.parse("Ctrl+Enter")
+
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // Check submit shortcut first
+        if submitShortcut.matches(event: event) {
+            onSubmit?()
+            return true
+        }
+
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let isCommandShortcut =
             modifiers.contains(.command)
@@ -181,6 +234,11 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
                 width: scrollView.contentSize.width,
                 height: scrollView.contentSize.height
             ))
+
+        // Wire up submit shortcut callback
+        (textView as! ShortcutTextView).onSubmit = { [weak self] in
+            self?.submitClicked()
+        }
         textView.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
         textView.maxSize = NSSize(
             width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
@@ -272,6 +330,12 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
     func focusTextView() {
         guard isViewLoaded else { return }
         view.window?.makeFirstResponder(textView)
+    }
+
+    /// Update the submit shortcut from config string (e.g. "Ctrl+Enter")
+    func updateSubmitShortcut(_ shortcut: String) {
+        guard !shortcut.isEmpty else { return }
+        (textView as? ShortcutTextView)?.submitShortcut = ParsedShortcut.parse(shortcut)
     }
 
     // MARK: - Actions
@@ -685,6 +749,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSLog("TFO server stopped")
     }
 
+    // MARK: - Config Sync
+
+    private func fetchAndApplyConfig() {
+        guard let url = URL(string: "http://127.0.0.1:\(serverPort)/api/config") else { return }
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
+            guard let data = data, error == nil else { return }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                let hotkeySave = json["hotkeySave"] as? String, !hotkeySave.isEmpty
+            else { return }
+            DispatchQueue.main.async {
+                self?.popoverVC.updateSubmitShortcut(hotkeySave)
+                NSLog("Submit shortcut updated to: %@", hotkeySave)
+            }
+        }.resume()
+    }
+
     // MARK: - Actions (exposed for PopoverVC)
 
     @objc func openDashboard() {
@@ -862,6 +942,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.isServerStarting = false
                 self.isServerRunning = true
                 self.updatePopoverStatus()
+                self.fetchAndApplyConfig()
                 if autoOpenDashboard {
                     self.openDashboard()
                 }

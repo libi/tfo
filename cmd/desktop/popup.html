@@ -192,11 +192,34 @@
 
         // i18n — Go backend provides locale info via Init().
         let i18n = { placeholder: "Capture a fleeting thought…", submit: "Save" };
+        // Save shortcut from config, default Ctrl+Enter
+        let hotkeySave = "Ctrl+Enter";
+
+        function parseShortcut(s) {
+            const parts = s.split('+').map(p => p.trim().toLowerCase());
+            return {
+                ctrl: parts.includes('ctrl') || parts.includes('control'),
+                alt: parts.includes('alt') || parts.includes('option'),
+                shift: parts.includes('shift'),
+                meta: parts.includes('cmd') || parts.includes('command') || parts.includes('meta'),
+                key: parts.filter(p => !['ctrl', 'control', 'alt', 'option', 'shift', 'cmd', 'command', 'meta'].includes(p)).pop() || ''
+            };
+        }
+
+        function matchesShortcut(e, shortcutStr) {
+            const s = parseShortcut(shortcutStr);
+            if (s.ctrl !== e.ctrlKey) return false;
+            if (s.alt !== e.altKey) return false;
+            if (s.shift !== e.shiftKey) return false;
+            if (s.meta !== e.metaKey) return false;
+            return e.key.toLowerCase() === s.key.toLowerCase();
+        }
 
         function applyI18n(cfg) {
             if (cfg.placeholder) i18n.placeholder = cfg.placeholder;
             document.getElementById("editor").placeholder = i18n.placeholder;
             if (cfg.ready) document.getElementById("status-dot").classList.add("ready");
+            if (cfg.hotkeySave) hotkeySave = cfg.hotkeySave;
         }
 
         function updateSubmitState() {
@@ -247,14 +270,14 @@
             if (api) api.Quit();
         });
 
-        // Ctrl+Enter or Cmd+Enter to submit, Escape to hide.
+        // Configurable shortcut to submit, Escape to hide.
         document.getElementById("editor").addEventListener("keydown", (e) => {
             if (e.key === "Escape") {
                 const api = API();
                 if (api) api.HidePopup();
                 return;
             }
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            if (matchesShortcut(e, hotkeySave)) {
                 e.preventDefault();
                 doSubmit();
             }

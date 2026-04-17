@@ -174,14 +174,22 @@ type InitResult struct {
 	Placeholder string `json:"placeholder"`
 	Submit      string `json:"submit"`
 	Ready       bool   `json:"ready"`
+	HotkeySave  string `json:"hotkeySave"`
 }
 
 // Init returns i18n strings and server readiness.
 func (p *PopupAPI) Init() InitResult {
+	hotkeySave := "Ctrl+Enter"
+	if p.state.app != nil {
+		if cfg := p.state.app.GetConfig(); cfg != nil && cfg.HotkeySave != "" {
+			hotkeySave = cfg.HotkeySave
+		}
+	}
 	return InitResult{
 		Placeholder: T("placeholder.capture"),
 		Submit:      T("button.submit"),
 		Ready:       serverReady.Load(),
+		HotkeySave:  hotkeySave,
 	}
 }
 
