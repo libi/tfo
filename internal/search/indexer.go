@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
+	_ "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
 	_ "github.com/blevesearch/bleve/v2/analysis/lang/cjk"
 	"github.com/blevesearch/bleve/v2/mapping"
 )
@@ -157,15 +158,15 @@ func buildIndexMapping() mapping.IndexMapping {
 
 	// Title: CJK 分词 + 存储
 	titleField := bleve.NewTextFieldMapping()
-	titleField.Analyzer = "cjk"
+	titleField.Analyzer = AnalyzerName
 	titleField.Store = true
 	titleField.IncludeTermVectors = true
 	noteMapping.AddFieldMappingsAt("title", titleField)
 
-	// Content: CJK 分词, 不存储
+	// Content: CJK 分词, 存储（搜索结果需要返回原文用于高亮展示）
 	contentField := bleve.NewTextFieldMapping()
-	contentField.Analyzer = "cjk"
-	contentField.Store = false
+	contentField.Analyzer = AnalyzerName
+	contentField.Store = true
 	contentField.IncludeTermVectors = true
 	noteMapping.AddFieldMappingsAt("content", contentField)
 
@@ -178,7 +179,32 @@ func buildIndexMapping() mapping.IndexMapping {
 	noteMapping.AddFieldMappingsAt("createdAt", dateField)
 
 	indexMapping := bleve.NewIndexMapping()
+
+	// 注册带 output_unigram 的 CJK bigram filter，使单个汉字也能作为 unigram 被索引
+	err := indexMapping.AddCustomTokenFilter(BigramUnigramName, map[string]interface{}{
+		"type":           "cjk_bigram",
+		"output_unigram": true,
+	})
+	if err != nil {
+		panic("register tfo_cjk_bigram filter: " + err.Error())
+	}
+
+	// 注册自定义 analyzer：unicode tokenizer → cjk_width → lowercase → tfo_word_split → tfo_cjk_bigram
+	err = indexMapping.AddCustomAnalyzer(AnalyzerName, map[string]interface{}{
+		"type":      "custom",
+		"tokenizer": "unicode",
+		"token_filters": []interface{}{
+			"cjk_width",
+			"to_lower",
+			WordSplitName,
+			BigramUnigramName,
+		},
+	})
+	if err != nil {
+		panic("register tfo_cjk analyzer: " + err.Error())
+	}
+
 	indexMapping.DefaultMapping = noteMapping
-	indexMapping.DefaultAnalyzer = "cjk"
+	indexMapping.DefaultAnalyzer = AnalyzerName
 	return indexMapping
 }

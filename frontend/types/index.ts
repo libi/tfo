@@ -4,4 +4,5 @@ export interface Fragment {
   content: string;
   date: string;
   tags: string[];
+  highlights?: { start: number; end: number }[];
 }

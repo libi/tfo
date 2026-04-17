@@ -95,13 +95,17 @@ export default function Home() {
     const timer = setTimeout(async () => {
       try {
         const { results } = await api.searchNotes(searchQuery);
-        setFragments((results || []).map(r => ({
-          id: r.id,
-          title: r.title,
-          content: r.fragments?.join(' ') || '',
-          date: '',
-          tags: [],
-        })));
+        setFragments((results || []).map(r => {
+          const frag = r.fragments?.[0];
+          return {
+            id: r.id,
+            title: r.title,
+            content: frag?.text || '',
+            date: '',
+            tags: [],
+            highlights: frag?.highlights,
+          };
+        }));
       } catch (err) {
         console.error('Search failed:', err);
       }

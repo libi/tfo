@@ -214,7 +214,7 @@ func (a *App) initSearch(cfg *config.Config) {
 		}
 	}
 
-	a.searcher = search.NewBleveSearcher(a.indexer.GetIndex())
+	a.searcher = search.NewBleveSearcher(a.indexer)
 	a.noteService.SetSearch(a.indexer, a.searcher)
 }
 

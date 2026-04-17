@@ -40,7 +40,7 @@ func seedTestData(t *testing.T) (*BleveIndexer, *BleveSearcher) {
 		}
 	}
 
-	searcher := NewBleveSearcher(indexer.GetIndex())
+	searcher := NewBleveSearcher(indexer)
 	return indexer, searcher
 }
 
@@ -72,6 +72,98 @@ func TestBleveSearcher_SearchChinese(t *testing.T) {
 		t.Fatalf("expected at least 1 result for '并发编程', got %d", total)
 	}
 	_ = results
+}
+
+func TestBleveSearcher_SearchURLPartial(t *testing.T) {
+	indexer, _ := setupTestIndexer(t)
+	defer indexer.Close()
+
+	err := indexer.Index(&IndexDocument{
+		ID:      "url-test",
+		Title:   "链接收藏",
+		Content: "推荐访问 baidu.com 和 google.com/search 获取更多信息",
+	})
+	if err != nil {
+		t.Fatalf("Index: %v", err)
+	}
+
+	searcher := NewBleveSearcher(indexer)
+
+	// 搜 "baidu" 应能匹配到包含 "baidu.com" 的文档
+	results, total, err := searcher.Search(context.Background(), "baidu", 0, 10)
+	if err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	if total < 1 {
+		t.Fatalf("expected at least 1 result for 'baidu', got %d", total)
+	}
+	_ = results
+}
+
+func TestBleveSearcher_SearchSingleChar(t *testing.T) {
+	indexer, _ := setupTestIndexer(t)
+	defer indexer.Close()
+
+	docs := []*IndexDocument{
+		{ID: "sc-1", Title: "学习笔记", Content: "今天学习了 Go 语言"},
+		{ID: "sc-2", Title: "链接", Content: "推荐 baidu.com"},
+	}
+	for _, doc := range docs {
+		if err := indexer.Index(doc); err != nil {
+			t.Fatalf("Index: %v", err)
+		}
+	}
+
+	searcher := NewBleveSearcher(indexer)
+
+	// 单个汉字 "学" 应能匹配
+	results, total, err := searcher.Search(context.Background(), "学", 0, 10)
+	if err != nil {
+		t.Fatalf("Search single CJK: %v", err)
+	}
+	if total < 1 {
+		t.Fatalf("expected at least 1 result for '学', got %d", total)
+	}
+
+	// 单个英文字母 "b" 应能匹配 baidu
+	results, total, err = searcher.Search(context.Background(), "b", 0, 10)
+	if err != nil {
+		t.Fatalf("Search single letter: %v", err)
+	}
+	if total < 1 {
+		t.Fatalf("expected at least 1 result for 'b', got %d", total)
+	}
+	_ = results
+}
+
+func TestBleveSearcher_SearchMultiTermAND(t *testing.T) {
+	indexer, _ := setupTestIndexer(t)
+	defer indexer.Close()
+
+	docs := []*IndexDocument{
+		{ID: "mt-1", Title: "好消息", Content: "今天收到了好消息"},
+		{ID: "mt-2", Title: "收藏夹", Content: "收藏了一些链接"},
+		{ID: "mt-3", Title: "心情", Content: "感觉好极了"},
+	}
+	for _, doc := range docs {
+		if err := indexer.Index(doc); err != nil {
+			t.Fatalf("Index: %v", err)
+		}
+	}
+
+	searcher := NewBleveSearcher(indexer)
+
+	// "好 收" 应只返回同时包含"好"和"收"的文档（mt-1），而非全部
+	results, total, err := searcher.Search(context.Background(), "好 收", 0, 10)
+	if err != nil {
+		t.Fatalf("Search multi-term: %v", err)
+	}
+	if total != 1 {
+		t.Fatalf("expected exactly 1 result for '好 收', got %d", total)
+	}
+	if results[0].ID != "mt-1" {
+		t.Fatalf("expected mt-1, got %s", results[0].ID)
+	}
 }
 
 func TestBleveSearcher_SearchByTag(t *testing.T) {

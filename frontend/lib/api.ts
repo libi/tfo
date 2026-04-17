@@ -27,11 +27,21 @@ export interface HeatmapEntry {
     count: number;
 }
 
+export interface HighlightRange {
+    start: number;
+    end: number;
+}
+
+export interface HighlightedFragment {
+    text: string;
+    highlights?: HighlightRange[];
+}
+
 export interface SearchResult {
     id: string;
     title: string;
     score: number;
-    fragments: string[];
+    fragments: HighlightedFragment[];
 }
 
 export interface WeChatConfig {
@@ -120,6 +130,12 @@ export async function getHeatmap(month: string): Promise<HeatmapEntry[]> {
 
 export async function searchNotes(query: string, limit = 20): Promise<{ results: SearchResult[]; total: number }> {
     const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+export async function rebuildIndex(): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/search/rebuild`, { method: 'POST' });
     if (!res.ok) throw new Error(await res.text());
     return res.json();
 }

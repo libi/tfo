@@ -42,6 +42,7 @@ export default function SettingsPage() {
     });
     const [draftIndexRebuild, setDraftIndexRebuild] = useState(false);
     const [draftTitleMinLength, setDraftTitleMinLength] = useState(300);
+    const [isRebuilding, setIsRebuilding] = useState(false);
 
     // Data dir change
     const [newDataDir, setNewDataDir] = useState('');
@@ -368,6 +369,28 @@ export default function SettingsPage() {
                                 />
                                 {t('settingsIndexRebuild')}
                             </label>
+                            <button
+                                onClick={async () => {
+                                    setIsRebuilding(true);
+                                    try {
+                                        await api.rebuildIndex();
+                                        showToast('success', t('settingsIndexRebuildSuccess'));
+                                    } catch (err) {
+                                        console.error('Rebuild index failed:', err);
+                                        showToast('error', t('settingsIndexRebuildError'));
+                                    } finally {
+                                        setIsRebuilding(false);
+                                    }
+                                }}
+                                disabled={isRebuilding}
+                                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isRebuilding ? (
+                                    <><Wrench size={14} className="animate-spin" /> {t('settingsIndexRebuilding')}</>
+                                ) : (
+                                    <><Database size={14} /> {t('settingsIndexRebuildNow')}</>
+                                )}
+                            </button>
                             <NumberField
                                 label={t('settingsTitleMinLength')}
                                 value={draftTitleMinLength}

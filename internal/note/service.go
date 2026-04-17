@@ -153,6 +153,25 @@ func (s *Service) SearchByTag(ctx context.Context, tags []string, limit int) ([]
 	return s.searcher.SearchByTag(ctx, tags, 0, limit)
 }
 
+// RebuildIndex 全量重建搜索索引
+func (s *Service) RebuildIndex(ctx context.Context) error {
+	if s.indexer == nil {
+		return fmt.Errorf("search not initialized")
+	}
+	scanFn := func(ctx context.Context, callback func(*search.IndexDocument) error) error {
+		return s.store.ScanAll(ctx, func(n *Note) error {
+			return callback(&search.IndexDocument{
+				ID:        n.ID,
+				Title:     n.Title,
+				Content:   n.Content,
+				Tags:      n.Tags,
+				CreatedAt: n.CreatedAt,
+			})
+		})
+	}
+	return s.indexer.Rebuild(ctx, scanFn)
+}
+
 // indexNote 将笔记同步到搜索索引（best-effort, 失败仅记日志）
 func (s *Service) indexNote(n *Note) {
 	if s.indexer == nil {

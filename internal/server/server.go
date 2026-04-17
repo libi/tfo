@@ -61,6 +61,7 @@ func New(deps *Dependencies) *gin.Engine {
 		api.GET("/heatmap", getHeatmap(deps))
 		api.GET("/tags", getAllTags(deps))
 		api.GET("/search", searchNotes(deps))
+		api.POST("/search/rebuild", rebuildIndex(deps))
 		api.GET("/config", getConfig(deps))
 		api.PUT("/config", updateConfig(deps))
 		api.PUT("/bootstrap", updateBootstrap(deps))
@@ -226,6 +227,16 @@ func searchNotes(deps *Dependencies) gin.HandlerFunc {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"results": results, "total": total})
+	}
+}
+
+func rebuildIndex(deps *Dependencies) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if err := deps.NoteService.RebuildIndex(c.Request.Context()); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"message": "index rebuilt successfully"})
 	}
 }
 
