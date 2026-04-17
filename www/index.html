@@ -6,11 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TFO — The Flash Note | 快闪记事本</title>
     <meta name="description" content="极简、本地优先的碎片化记事工具。快捷键一键呼出，随手记录灵感。" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap"
-        rel="stylesheet" />
+
     <style>
         :root {
             --text: #111827;
@@ -46,7 +42,7 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             color: var(--text);
             background: var(--bg);
             line-height: 1.7;
@@ -313,7 +309,7 @@
             border-radius: 8px;
             padding: 24px 28px;
             overflow-x: auto;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'SF Mono', Menlo, Monaco, 'Cascadia Code', Consolas, monospace;
             font-size: .78rem;
             line-height: 1.7;
             white-space: pre;
@@ -361,7 +357,7 @@
         }
 
         code {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'SF Mono', Menlo, Monaco, 'Cascadia Code', Consolas, monospace;
             font-size: .82em;
             background: var(--bg-muted);
             padding: 2px 6px;
@@ -546,7 +542,7 @@
         </div>
         <div class="screenshot" id="tab-0">
             <div class="screenshot-placeholder">
-                <img src="../docs/screenshots/main.png" alt="TFO 主界面"
+                <img src="main.png" alt="TFO 主界面"
                     onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span>界面预览</span>')" />
             </div>
         </div>
@@ -629,7 +625,7 @@
                 <!-- Menu bar -->
                 <rect x="40" y="30" width="600" height="24" rx="10" fill="var(--bg-white)" />
                 <text x="340" y="46" text-anchor="middle" font-size="10" fill="var(--text-muted)"
-                    font-family="Inter,sans-serif">桌面</text>
+                    font-family="-apple-system,BlinkMacSystemFont,sans-serif">桌面</text>
                 <!-- Tray icon (always visible) -->
                 <text x="600" y="46" text-anchor="middle" font-size="11" fill="var(--primary)"
                     font-family="sans-serif">⚡</text>
@@ -641,7 +637,8 @@
                     <rect x="240" y="100" width="200" height="44" rx="8" fill="var(--bg-white)" stroke="var(--border)"
                         stroke-width="1" />
                     <text x="340" y="127" text-anchor="middle" font-size="14" fill="var(--text)"
-                        font-family="Inter,sans-serif" font-weight="600">⌨️ Alt + Shift + F</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="600">⌨️ Alt + Shift +
+                        F</text>
                 </g>
 
                 <!-- Popup window: appears at 18% -->
@@ -657,19 +654,20 @@
                     <circle cx="176" cy="108" r="4.5" fill="#febc2e" />
                     <circle cx="192" cy="108" r="4.5" fill="#28c840" />
                     <text x="340" y="113" text-anchor="middle" font-size="11" fill="var(--text-secondary)"
-                        font-family="Inter,sans-serif" font-weight="600">⚡ 快闪记事</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-weight="600">⚡ 快闪记事</text>
                     <!-- Input area -->
                     <rect x="160" y="140" width="360" height="80" rx="8" fill="var(--bg-muted)"
                         stroke="var(--border-light)" stroke-width="1" />
                     <!-- Typing line 1: appears at 32% -->
-                    <text x="172" y="165" font-size="13" fill="var(--text)" font-family="Inter,sans-serif" opacity="0">
+                    <text x="172" y="165" font-size="13" fill="var(--text)"
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif" opacity="0">
                         明天下午3点和设计师开会
                         <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.30;0.36;1" dur="3s"
                             repeatCount="indefinite" />
                     </text>
                     <!-- Typing line 2 (tags): appears at 42% -->
-                    <text x="172" y="185" font-size="13" fill="var(--primary)" font-family="Inter,sans-serif"
-                        opacity="0">
+                    <text x="172" y="185" font-size="13" fill="var(--primary)"
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif" opacity="0">
                         #todo #work
                         <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.40;0.46;1" dur="3s"
                             repeatCount="indefinite" />
@@ -685,8 +683,8 @@
                         <animate attributeName="fill" values="#e5e7eb;#e5e7eb;var(--primary);var(--primary);#e5e7eb"
                             keyTimes="0;0.58;0.62;0.70;0.74" dur="3s" repeatCount="indefinite" />
                     </rect>
-                    <text x="455" y="259" text-anchor="middle" font-size="11" font-family="Inter,sans-serif"
-                        fill="var(--text-secondary)">
+                    <text x="455" y="259" text-anchor="middle" font-size="11"
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif" fill="var(--text-secondary)">
                         ↵ 保存
                         <animate attributeName="fill"
                             values="var(--text-secondary);var(--text-secondary);#fff;#fff;var(--text-secondary)"
@@ -701,11 +699,11 @@
                     <circle cx="340" cy="200" r="28" fill="#28c840" opacity="0.15" />
                     <text x="340" y="208" text-anchor="middle" font-size="22" fill="#28c840">✓</text>
                     <text x="340" y="250" text-anchor="middle" font-size="11" fill="#28c840"
-                        font-family="Inter,sans-serif">已保存</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">已保存</text>
                 </g>
 
                 <text x="340" y="390" text-anchor="middle" font-size="11" fill="var(--text-muted)"
-                    font-family="Inter,sans-serif">Alt+Shift+F 唤起
+                    font-family="-apple-system,BlinkMacSystemFont,sans-serif">Alt+Shift+F 唤起
                     → 输入内容 → 回车保存</text>
             </svg>
         </div>
@@ -896,14 +894,14 @@ go run ./cmd/tfo                             # 终端 2：后端
                 <rect x="40" y="30" width="600" height="320" rx="8" fill="var(--bg-muted)" />
                 <rect x="40" y="30" width="160" height="28" rx="8" fill="var(--border)" />
                 <text x="120" y="49" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text-secondary)"
-                    font-family="Inter,sans-serif">📁 ~/notes/</text>
+                    font-family="-apple-system,BlinkMacSystemFont,sans-serif">📁 ~/notes/</text>
 
                 <!-- Year/Month folder -->
                 <g>
                     <rect x="70" y="76" width="140" height="28" rx="6" fill="var(--bg-white)"
                         stroke="var(--border-light)" stroke-width="1" />
                     <text x="140" y="95" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)"
-                        font-family="Inter,sans-serif">📁 2026/</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">📁 2026/</text>
                 </g>
 
                 <!-- Month folders row -->
@@ -911,7 +909,7 @@ go run ./cmd/tfo                             # 终端 2：后端
                     <rect x="100" y="118" width="80" height="24" rx="5" fill="var(--bg-white)"
                         stroke="var(--border-light)" stroke-width="1" />
                     <text x="140" y="134" text-anchor="middle" font-size="10" fill="var(--text-secondary)"
-                        font-family="Inter,sans-serif">📁 04/</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">📁 04/</text>
                 </g>
 
                 <!-- MD files - the main visual -->
@@ -924,10 +922,11 @@ go run ./cmd/tfo                             # 终端 2：后端
                     <rect x="150" y="165" width="16" height="20" rx="2" fill="var(--bg-muted)"
                         stroke="var(--border-light)" stroke-width="0.5" />
                     <text x="153" y="179" font-size="7" fill="var(--text-muted)"
-                        font-family="JetBrains Mono,monospace">md</text>
+                        font-family="SF Mono,Menlo,Consolas,monospace">md</text>
                     <text x="174" y="176" font-size="12" font-weight="500" fill="var(--text)"
-                        font-family="Inter,sans-serif">2026-04-17.md</text>
-                    <text x="174" y="192" font-size="9" fill="var(--text-muted)" font-family="Inter,sans-serif">今天 · 3
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">2026-04-17.md</text>
+                    <text x="174" y="192" font-size="9" fill="var(--text-muted)"
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">今天 · 3
                         条笔记</text>
                 </g>
 
@@ -940,10 +939,11 @@ go run ./cmd/tfo                             # 终端 2：后端
                     <rect x="150" y="213" width="16" height="20" rx="2" fill="var(--bg-muted)"
                         stroke="var(--border-light)" stroke-width="0.5" />
                     <text x="153" y="227" font-size="7" fill="var(--text-muted)"
-                        font-family="JetBrains Mono,monospace">md</text>
+                        font-family="SF Mono,Menlo,Consolas,monospace">md</text>
                     <text x="174" y="224" font-size="12" font-weight="500" fill="var(--text)"
-                        font-family="Inter,sans-serif">2026-04-16.md</text>
-                    <text x="174" y="240" font-size="9" fill="var(--text-muted)" font-family="Inter,sans-serif">昨天 · 5
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">2026-04-16.md</text>
+                    <text x="174" y="240" font-size="9" fill="var(--text-muted)"
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">昨天 · 5
                         条笔记</text>
                 </g>
 
@@ -956,10 +956,11 @@ go run ./cmd/tfo                             # 终端 2：后端
                     <rect x="150" y="261" width="16" height="20" rx="2" fill="var(--bg-muted)"
                         stroke="var(--border-light)" stroke-width="0.5" />
                     <text x="153" y="275" font-size="7" fill="var(--text-muted)"
-                        font-family="JetBrains Mono,monospace">md</text>
+                        font-family="SF Mono,Menlo,Consolas,monospace">md</text>
                     <text x="174" y="272" font-size="12" font-weight="500" fill="var(--text)"
-                        font-family="Inter,sans-serif">2026-04-15.md</text>
-                    <text x="174" y="288" font-size="9" fill="var(--text-muted)" font-family="Inter,sans-serif">前天 · 2
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">2026-04-15.md</text>
+                    <text x="174" y="288" font-size="9" fill="var(--text-muted)"
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">前天 · 2
                         条笔记</text>
                 </g>
 
@@ -970,7 +971,7 @@ go run ./cmd/tfo                             # 终端 2：后端
                     <rect x="140" y="302" width="220" height="30" rx="8" fill="var(--bg-white)"
                         stroke="var(--border-light)" stroke-width="1" opacity="0.6" />
                     <text x="250" y="321" text-anchor="middle" font-size="10" fill="var(--text-muted)"
-                        font-family="Inter,sans-serif">···</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">···</text>
                 </g>
 
                 <!-- Right side: file content preview -->
@@ -986,35 +987,37 @@ go run ./cmd/tfo                             # 终端 2：后端
                     <circle cx="420" cy="91" r="4" fill="#febc2e" />
                     <circle cx="434" cy="91" r="4" fill="#28c840" />
                     <text x="505" y="95" text-anchor="middle" font-size="10" fill="var(--text-muted)"
-                        font-family="JetBrains Mono,monospace">2026-04-17.md</text>
+                        font-family="SF Mono,Menlo,Consolas,monospace">2026-04-17.md</text>
 
                     <!-- Markdown content -->
                     <text x="406" y="126" font-size="13" font-weight="700" fill="var(--text)"
-                        font-family="Inter,sans-serif">📅 2026-04-17</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">📅 2026-04-17</text>
                     <line x1="406" y1="134" x2="604" y2="134" stroke="var(--border-light)" stroke-width="1" />
 
                     <!-- Entry 1 -->
                     <text x="406" y="154" font-size="9" fill="var(--text-muted)"
-                        font-family="JetBrains Mono,monospace">09:32</text>
+                        font-family="SF Mono,Menlo,Consolas,monospace">09:32</text>
                     <line x1="406" y1="158" x2="604" y2="158" stroke="var(--border-light)" stroke-width="0.5" />
                     <text x="406" y="172" font-size="11" fill="var(--text)"
-                        font-family="Inter,sans-serif">今天的会议纪要</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">今天的会议纪要</text>
                     <line x1="406" y1="182" x2="604" y2="182" stroke="var(--border-light)" stroke-width="0.5" />
 
                     <!-- Entry 2 -->
                     <text x="406" y="198" font-size="9" fill="var(--text-muted)"
-                        font-family="JetBrains Mono,monospace">14:15</text>
+                        font-family="SF Mono,Menlo,Consolas,monospace">14:15</text>
                     <line x1="406" y1="202" x2="604" y2="202" stroke="var(--border-light)" stroke-width="0.5" />
                     <text x="406" y="216" font-size="11" fill="var(--primary)"
-                        font-family="Inter,sans-serif">#idea</text>
-                    <text x="440" y="216" font-size="11" fill="var(--text)" font-family="Inter,sans-serif">新功能想法</text>
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">#idea</text>
+                    <text x="440" y="216" font-size="11" fill="var(--text)"
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">新功能想法</text>
                     <line x1="406" y1="226" x2="604" y2="226" stroke="var(--border-light)" stroke-width="0.5" />
 
                     <!-- Entry 3 -->
                     <text x="406" y="242" font-size="9" fill="var(--text-muted)"
-                        font-family="JetBrains Mono,monospace">20:41</text>
+                        font-family="SF Mono,Menlo,Consolas,monospace">20:41</text>
                     <line x1="406" y1="246" x2="604" y2="246" stroke="var(--border-light)" stroke-width="0.5" />
-                    <text x="406" y="260" font-size="11" fill="var(--text)" font-family="Inter,sans-serif">明天买牛奶
+                    <text x="406" y="260" font-size="11" fill="var(--text)"
+                        font-family="-apple-system,BlinkMacSystemFont,sans-serif">明天买牛奶
                         🥛</text>
 
                     <!-- Arrow connecting file to preview -->
@@ -1025,7 +1028,7 @@ go run ./cmd/tfo                             # 终端 2：后端
 
                 <!-- Bottom labels -->
                 <text x="340" y="370" text-anchor="middle" font-size="11" fill="var(--text-muted)"
-                    font-family="Inter,sans-serif">一天一个文件 · 每条笔记带时间戳 · 纯文本可读 · 复制即迁移</text>
+                    font-family="-apple-system,BlinkMacSystemFont,sans-serif">一天一个文件 · 每条笔记带时间戳 · 纯文本可读 · 复制即迁移</text>
             </svg>
         </div>
     </section>
