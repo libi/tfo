@@ -12,9 +12,27 @@ interface MainContentProps {
   onAddFragment: (content: string) => Promise<void>;
   quickCaptureShortcut: string;
   saveShortcut: string;
+  isLoading?: boolean;
 }
 
-export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, quickCaptureShortcut, saveShortcut }: MainContentProps) {
+function SkeletonCard() {
+  return (
+    <div className="animate-pulse rounded-xl border border-gray-100 bg-white p-5 space-y-3">
+      <div className="h-4 w-1/3 rounded bg-gray-100" />
+      <div className="space-y-2">
+        <div className="h-3 w-full rounded bg-gray-100" />
+        <div className="h-3 w-5/6 rounded bg-gray-100" />
+        <div className="h-3 w-2/3 rounded bg-gray-100" />
+      </div>
+      <div className="flex gap-2 pt-1">
+        <div className="h-5 w-12 rounded-full bg-gray-100" />
+        <div className="h-5 w-16 rounded-full bg-gray-100" />
+      </div>
+    </div>
+  );
+}
+
+export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, quickCaptureShortcut, saveShortcut, isLoading }: MainContentProps) {
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -73,16 +91,32 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
 
       {/* Fragments List */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
-        <div className="max-w-3xl mx-auto space-y-6 pb-32">
-          {fragments.length === 0 ? (
-            <div className="text-center text-gray-400 mt-20">
-              <p>{t('noFragments')}</p>
-            </div>
-          ) : (
-            fragments.map(fragment => (
-              <FragmentCard key={fragment.id} fragment={fragment} />
-            ))
-          )}
+        <div className="max-w-3xl mx-auto pb-32 relative">
+          {/* Skeleton layer – crossfade out */}
+          <div
+            className="space-y-6 transition-opacity duration-200 ease-out"
+            style={{ opacity: isLoading ? 1 : 0, pointerEvents: isLoading ? 'auto' : 'none', position: isLoading ? 'relative' : 'absolute', inset: 0 }}
+            aria-hidden={!isLoading}
+          >
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+          {/* Content layer – crossfade in */}
+          <div
+            className="space-y-6 transition-opacity duration-200 ease-in"
+            style={{ opacity: isLoading ? 0 : 1 }}
+          >
+            {fragments.length === 0 ? (
+              <div className="text-center text-gray-400 mt-20">
+                <p>{t('noFragments')}</p>
+              </div>
+            ) : (
+              fragments.map(fragment => (
+                <FragmentCard key={fragment.id} fragment={fragment} />
+              ))
+            )}
+          </div>
         </div>
       </div>
 

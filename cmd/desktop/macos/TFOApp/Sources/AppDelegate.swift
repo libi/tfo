@@ -5,7 +5,8 @@ import Cocoa
 private final class ShortcutTextView: NSTextView {
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let isCommandShortcut = modifiers.contains(.command)
+        let isCommandShortcut =
+            modifiers.contains(.command)
             && !modifiers.contains(.control)
             && !modifiers.contains(.option)
         guard isCommandShortcut,
@@ -197,7 +198,8 @@ class PopoverViewController: NSViewController, NSTextViewDelegate {
         placeholderLabel.textColor = NSColor(white: 0.70, alpha: 1.0)
         placeholderLabel.frame = NSRect(
             x: scrollView.frame.minX + textHorizontalInset,
-            y: scrollView.frame.maxY - textVerticalInset - placeholderLabel.intrinsicContentSize.height,
+            y: scrollView.frame.maxY - textVerticalInset
+                - placeholderLabel.intrinsicContentSize.height,
             width: scrollView.frame.width - textHorizontalInset * 2,
             height: placeholderLabel.intrinsicContentSize.height
         )
@@ -425,17 +427,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
-    // MARK: - Global Hotkey (Cmd+Shift+T)
+    // MARK: - Global Hotkey (Option+Shift+F)
 
     private func registerGlobalHotkey() {
         // Monitor key events globally (when app is not focused).
-        globalHotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        globalHotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) {
+            [weak self] event in
             self?.handleHotkeyEvent(event)
         }
         // Also monitor when app is focused (local).
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if self?.handleHotkeyEvent(event) == true {
-                return nil // swallow the event
+                return nil  // swallow the event
             }
             return event
         }
@@ -444,9 +447,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @discardableResult
     private func handleHotkeyEvent(_ event: NSEvent) -> Bool {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let required: NSEvent.ModifierFlags = [.command, .shift]
+        let required: NSEvent.ModifierFlags = [.option, .shift]
         guard flags == required,
-              event.charactersIgnoringModifiers?.lowercased() == "t"
+            event.charactersIgnoringModifiers?.lowercased() == "f"
         else { return false }
         DispatchQueue.main.async { [weak self] in
             self?.togglePopover()

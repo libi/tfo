@@ -30,6 +30,7 @@ export default function Home() {
   const [isClawBotModalOpen, setIsClawBotModalOpen] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [appConfig, setAppConfig] = useState<api.AppConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -65,6 +66,7 @@ export default function Home() {
   // Load notes by month or date
   const loadNotes = useCallback(async () => {
     if (!mounted) return;
+    setIsLoading(true);
     try {
       let summaries: api.NoteSummary[];
       if (selectedDate) {
@@ -82,6 +84,8 @@ export default function Home() {
       setFragments(frags);
     } catch (err) {
       console.error('Failed to load notes:', err);
+    } finally {
+      setIsLoading(false);
     }
   }, [mounted, selectedDate]);
 
@@ -93,6 +97,7 @@ export default function Home() {
   useEffect(() => {
     if (!mounted || !searchQuery.trim()) return;
     const timer = setTimeout(async () => {
+      setIsLoading(true);
       try {
         const { results } = await api.searchNotes(searchQuery);
         setFragments((results || []).map(r => {
@@ -108,6 +113,8 @@ export default function Home() {
         }));
       } catch (err) {
         console.error('Search failed:', err);
+      } finally {
+        setIsLoading(false);
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -135,7 +142,7 @@ export default function Home() {
     }
   };
 
-  const quickCaptureShortcut = normalizeShortcut(appConfig?.hotkeyQuickCapture || defaultQuickCaptureShortcut);
+  const quickCaptureShortcut = normalizeShortcut(appConfig?.hotkeyInputFocus || defaultQuickCaptureShortcut);
   const saveShortcut = normalizeShortcut(appConfig?.hotkeySave || defaultSaveShortcut);
 
   // Global shortcut for Quick Record
@@ -166,6 +173,7 @@ export default function Home() {
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
         onOpenClawBot={() => setIsClawBotModalOpen(true)}
+        wechatBound={!!(appConfig?.wechat?.token)}
       />
       <MainContent
         fragments={filteredFragments}
@@ -174,6 +182,7 @@ export default function Home() {
         onAddFragment={handleAddFragment}
         quickCaptureShortcut={quickCaptureShortcut}
         saveShortcut={saveShortcut}
+        isLoading={isLoading}
       />
 
       {isClawBotModalOpen && (

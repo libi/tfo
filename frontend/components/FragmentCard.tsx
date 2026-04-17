@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { Fragment } from '@/types';
 import { useI18n } from './I18nProvider';
+import { getNote } from '@/lib/api';
 
 const DEFAULT_TITLE_MIN_CONTENT_LENGTH = 300;
 
@@ -40,6 +43,36 @@ export function FragmentCard({ fragment, titleMinContentLength }: FragmentCardPr
   const threshold = titleMinContentLength ?? DEFAULT_TITLE_MIN_CONTENT_LENGTH;
   const showTitle = fragment.content.length >= threshold;
 
+  const [expanded, setExpanded] = useState(false);
+  const [fullContent, setFullContent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Detect if content is likely truncated (ends with "…" or is a search snippet)
+  const isTruncated = fragment.content.endsWith('…') || fragment.content.endsWith('...');
+
+  const handleToggleExpand = async () => {
+    if (expanded) {
+      setExpanded(false);
+      return;
+    }
+    if (fullContent !== null) {
+      setExpanded(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const note = await getNote(fragment.id);
+      setFullContent(note.content);
+      setExpanded(true);
+    } catch (err) {
+      console.error('Failed to load full content:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const displayContent = expanded && fullContent !== null ? fullContent : fragment.content;
+
   return (
     <article className={`group relative bg-white border border-gray-100 rounded-xl hover:shadow-sm transition-all duration-200 ${showTitle ? 'p-5' : 'px-5 py-3'}`}>
       {showTitle ? (
@@ -51,22 +84,38 @@ export function FragmentCard({ fragment, titleMinContentLength }: FragmentCardPr
             </time>
           </div>
           <div className="prose prose-sm max-w-none text-gray-600 prose-p:leading-relaxed prose-a:text-blue-600 hover:prose-a:text-blue-500">
-            {fragment.highlights && fragment.highlights.length > 0
-              ? <p className="leading-relaxed"><HighlightedText text={fragment.content} highlights={fragment.highlights} /></p>
-              : <ReactMarkdown>{fragment.content}</ReactMarkdown>}
+            {fragment.highlights && fragment.highlights.length > 0 && !expanded
+              ? <p className="leading-relaxed"><HighlightedText text={displayContent} highlights={fragment.highlights} /></p>
+              : <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a> }}>{displayContent}</ReactMarkdown>}
           </div>
         </>
       ) : (
         <div className="flex items-start gap-3">
           <div className="flex-1 prose prose-sm max-w-none text-gray-700 prose-p:my-1 prose-p:leading-relaxed prose-a:text-blue-600 hover:prose-a:text-blue-500">
-            {fragment.highlights && fragment.highlights.length > 0
-              ? <p className="my-1 leading-relaxed"><HighlightedText text={fragment.content} highlights={fragment.highlights} /></p>
-              : <ReactMarkdown>{fragment.content}</ReactMarkdown>}
+            {fragment.highlights && fragment.highlights.length > 0 && !expanded
+              ? <p className="my-1 leading-relaxed"><HighlightedText text={displayContent} highlights={fragment.highlights} /></p>
+              : <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ children, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer">{children}</a> }}>{displayContent}</ReactMarkdown>}
           </div>
           <time className="shrink-0 text-[11px] text-gray-400 font-mono pt-1">
             {fragment.date ? format(new Date(fragment.date), 'MMM d, HH:mm', { locale: dateLocale }) : ''}
           </time>
         </div>
+      )}
+
+      {isTruncated && (
+        <button
+          onClick={handleToggleExpand}
+          disabled={loading}
+          className="mt-2 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          {loading ? (
+            t('loadingContent')
+          ) : expanded ? (
+            <><ChevronUp size={14} />{t('collapseContent')}</>
+          ) : (
+            <><ChevronDown size={14} />{t('expandContent')}</>
+          )}
+        </button>
       )}
 
       {fragment.tags.length > 0 && (

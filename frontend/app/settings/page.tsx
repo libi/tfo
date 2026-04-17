@@ -8,6 +8,7 @@ import {
     Keyboard,
     MessageSquare,
     Settings,
+    Smartphone,
     TriangleAlert,
     Wrench,
 } from 'lucide-react';
@@ -16,6 +17,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { isLocale, type Locale } from '@/lib/i18n';
 import { keyboardEventToShortcut, normalizeShortcut } from '@/lib/hotkeys';
 import * as api from '@/lib/api';
+import { ClawBotModal } from '@/components/ClawBotModal';
 
 export default function SettingsPage() {
     const { locale, setLocale, t } = useI18n();
@@ -27,7 +29,7 @@ export default function SettingsPage() {
     // Draft state for all config fields
     const [draftLocale, setDraftLocale] = useState<Locale>(locale);
     const [draftShortcut, setDraftShortcut] = useState('Alt+S');
-    const [draftGlobalToggle, setDraftGlobalToggle] = useState('Ctrl+Shift+T');
+    const [draftGlobalToggle, setDraftGlobalToggle] = useState('Alt+Shift+F');
     const [draftSaveShortcut, setDraftSaveShortcut] = useState('Ctrl+Enter');
     const [isRecordingShortcut, setIsRecordingShortcut] = useState(false);
     const [recordingTarget, setRecordingTarget] = useState<'focus' | 'globalToggle' | 'save' | null>(null);
@@ -43,6 +45,7 @@ export default function SettingsPage() {
     const [draftIndexRebuild, setDraftIndexRebuild] = useState(false);
     const [draftTitleMinLength, setDraftTitleMinLength] = useState(300);
     const [isRebuilding, setIsRebuilding] = useState(false);
+    const [showRebind, setShowRebind] = useState(false);
 
     // Data dir change
     const [newDataDir, setNewDataDir] = useState('');
@@ -58,8 +61,8 @@ export default function SettingsPage() {
             if (cfg.uiLanguage && isLocale(cfg.uiLanguage)) {
                 setDraftLocale(cfg.uiLanguage as Locale);
             }
-            setDraftShortcut(normalizeShortcut(cfg.hotkeyQuickCapture) || 'Alt+S');
-            setDraftGlobalToggle(normalizeShortcut(cfg.hotkeyGlobalToggle) || 'Ctrl+Shift+T');
+            setDraftShortcut(normalizeShortcut(cfg.hotkeyInputFocus) || 'Alt+S');
+            setDraftGlobalToggle(normalizeShortcut(cfg.hotkeyGlobalQuickCapture) || 'Alt+Shift+F');
             setDraftSaveShortcut(normalizeShortcut(cfg.hotkeySave) || 'Ctrl+Enter');
             setDraftWechat(cfg.wechat);
             setDraftIndexRebuild(cfg.indexRebuildOnStart);
@@ -78,8 +81,8 @@ export default function SettingsPage() {
         const origLocale = config.uiLanguage && isLocale(config.uiLanguage) ? config.uiLanguage : locale;
         return (
             draftLocale !== origLocale ||
-            draftShortcut !== normalizeShortcut(config.hotkeyQuickCapture) ||
-            draftGlobalToggle !== normalizeShortcut(config.hotkeyGlobalToggle) ||
+            draftShortcut !== normalizeShortcut(config.hotkeyInputFocus) ||
+            draftGlobalToggle !== normalizeShortcut(config.hotkeyGlobalQuickCapture) ||
             draftSaveShortcut !== normalizeShortcut(config.hotkeySave) ||
             draftIndexRebuild !== config.indexRebuildOnStart ||
             draftTitleMinLength !== config.titleMinContentLength ||
@@ -99,8 +102,8 @@ export default function SettingsPage() {
             const nextConfig: api.AppConfig = {
                 ...config,
                 uiLanguage: draftLocale,
-                hotkeyGlobalToggle: normalizeShortcut(draftGlobalToggle) || 'Ctrl+Shift+T',
-                hotkeyQuickCapture: normalizeShortcut(draftShortcut) || 'Alt+S',
+                hotkeyGlobalQuickCapture: normalizeShortcut(draftGlobalToggle) || 'Alt+Shift+F',
+                hotkeyInputFocus: normalizeShortcut(draftShortcut) || 'Alt+S',
                 hotkeySave: normalizeShortcut(draftSaveShortcut) || 'Ctrl+Enter',
                 wechat: draftWechat,
                 indexRebuildOnStart: draftIndexRebuild,
@@ -266,8 +269,8 @@ export default function SettingsPage() {
                         <div className="space-y-5">
                             {/* Global toggle hotkey */}
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700">{t('hotkeyGlobalToggleLabel')}</label>
-                                <p className="mb-2 text-xs text-gray-500">{t('hotkeyGlobalToggleHint')}</p>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">{t('hotkeyGlobalQuickCaptureLabel')}</label>
+                                <p className="mb-2 text-xs text-gray-500">{t('hotkeyGlobalQuickCaptureHint')}</p>
                                 <button
                                     type="button"
                                     onFocus={() => { setIsRecordingShortcut(true); setRecordingTarget('globalToggle'); }}
@@ -334,9 +337,28 @@ export default function SettingsPage() {
                                 />
                                 {t('settingsWeChatEnabled')}
                             </label>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <InputField label={t('settingsWeChatToken')} value={draftWechat.token} onChange={v => updateWechatField('token', v)} type="password" />
-                            </div>
+                            {draftWechat.token ? (
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm text-green-600">✓ {t('settingsWeChatBound')}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowRebind(true)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                    >
+                                        <Smartphone size={14} />
+                                        {t('settingsWeChatRebind')}
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRebind(true)}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    <Smartphone size={14} />
+                                    {t('settingsWeChatBind')}
+                                </button>
+                            )}
                             <label className="flex items-center gap-3 text-sm text-gray-700">
                                 <input
                                     type="checkbox"
@@ -417,6 +439,10 @@ export default function SettingsPage() {
                 <div className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg px-4 py-2 text-sm text-white shadow-lg transition-all ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
                     {toast.message}
                 </div>
+            )}
+
+            {showRebind && (
+                <ClawBotModal onClose={() => { setShowRebind(false); loadConfig(); }} />
             )}
         </div>
     );

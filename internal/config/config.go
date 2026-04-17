@@ -9,14 +9,14 @@ import (
 // Config 用户配置，保存在数据目录下的 .config.json 中。
 // DataDir 不参与 JSON 序列化，由 tfo.json 引导确定。
 type Config struct {
-	DataDir               string       `json:"-"`
-	UILanguage            string       `json:"uiLanguage,omitempty"`
-	HotkeyGlobalToggle    string       `json:"hotkeyGlobalToggle"`
-	HotkeyQuickCapture    string       `json:"hotkeyQuickCapture"`
-	HotkeySave            string       `json:"hotkeySave"`
-	WeChat                WeChatConfig `json:"wechat"`
-	IndexRebuildOnStart   bool         `json:"indexRebuildOnStart"`
-	TitleMinContentLength int          `json:"titleMinContentLength"`
+	DataDir                  string       `json:"-"`
+	UILanguage               string       `json:"uiLanguage,omitempty"`
+	HotkeyGlobalQuickCapture string       `json:"hotkeyGlobalQuickCapture"`
+	HotkeyInputFocus         string       `json:"hotkeyInputFocus"`
+	HotkeySave               string       `json:"hotkeySave"`
+	WeChat                   WeChatConfig `json:"wechat"`
+	IndexRebuildOnStart      bool         `json:"indexRebuildOnStart"`
+	TitleMinContentLength    int          `json:"titleMinContentLength"`
 }
 
 // WeChatConfig 微信 iLink Bot 连接配置
@@ -35,11 +35,11 @@ const configFileName = ".config.json"
 // DefaultConfig 返回默认配置
 func DefaultConfig() *Config {
 	return &Config{
-		DataDir:               "",
-		HotkeyGlobalToggle:    "Ctrl+Shift+T",
-		HotkeyQuickCapture:    "Alt+S",
-		HotkeySave:            "Ctrl+Enter",
-		TitleMinContentLength: 300,
+		DataDir:                  "",
+		HotkeyGlobalQuickCapture: "Alt+Shift+F",
+		HotkeyInputFocus:         "Alt+S",
+		HotkeySave:               "Ctrl+Enter",
+		TitleMinContentLength:    300,
 		WeChat: WeChatConfig{
 			Enabled:              false,
 			BaseURL:              "",

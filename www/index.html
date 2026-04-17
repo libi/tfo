@@ -641,7 +641,7 @@
                     <rect x="240" y="100" width="200" height="44" rx="8" fill="var(--bg-white)" stroke="var(--border)"
                         stroke-width="1" />
                     <text x="340" y="127" text-anchor="middle" font-size="14" fill="var(--text)"
-                        font-family="Inter,sans-serif" font-weight="600">⌨️ Alt + S</text>
+                        font-family="Inter,sans-serif" font-weight="600">⌨️ Alt + Shift + F</text>
                 </g>
 
                 <!-- Popup window: appears at 18% -->
@@ -705,7 +705,7 @@
                 </g>
 
                 <text x="340" y="390" text-anchor="middle" font-size="11" fill="var(--text-muted)"
-                    font-family="Inter,sans-serif">Alt+S 唤起
+                    font-family="Inter,sans-serif">Alt+Shift+F 唤起
                     → 输入内容 → 回车保存</text>
             </svg>
         </div>
@@ -743,7 +743,7 @@
                 </div>
                 <div class="feature">
                     <h3>一键快闪记事</h3>
-                    <p>全局快捷键呼出窗口，粘贴即保存，捕捉稍纵即逝的想法。默认 <code>Alt+S</code>。</p>
+                    <p>全局快捷键呼出窗口，粘贴即保存，捕捉稍纵即逝的想法。默认 <code>Alt+Shift+F</code>。</p>
                 </div>
                 <div class="feature">
                     <h3>微信碎片收集</h3>
@@ -804,7 +804,7 @@
                 </div>
                 <div class="step">
                     <h3>快闪记事</h3>
-                    <p>按 <code>Alt+S</code>（可自定义）呼出快捷输入窗口，输入内容后回车保存。</p>
+                    <p>按 <code>Alt+Shift+F</code>（可自定义）呼出快捷输入窗口，输入内容后回车保存。</p>
                 </div>
                 <div class="step">
                     <h3>浏览笔记</h3>
@@ -854,8 +854,13 @@ go run ./cmd/tfo                             # 终端 2：后端
                     <td>—</td>
                 </tr>
                 <tr>
-                    <td><code>hotkeyQuickCapture</code></td>
-                    <td>快闪记事快捷键</td>
+                    <td><code>hotkeyGlobalQuickCapture</code></td>
+                    <td>全局唤起快捷键（桌面端）</td>
+                    <td><code>Alt+Shift+F</code></td>
+                </tr>
+                <tr>
+                    <td><code>hotkeyInputFocus</code></td>
+                    <td>聚焦输入框快捷键（网页端）</td>
                     <td><code>Alt+S</code></td>
                 </tr>
                 <tr>

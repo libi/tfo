@@ -11,9 +11,10 @@ interface SidebarProps {
   selectedDate: Date | null;
   onSelectDate: (date: Date | null) => void;
   onOpenClawBot: () => void;
+  wechatBound?: boolean;
 }
 
-export function Sidebar({ tags, selectedTag, onSelectTag, selectedDate, onSelectDate, onOpenClawBot }: SidebarProps) {
+export function Sidebar({ tags, selectedTag, onSelectTag, selectedDate, onSelectDate, onOpenClawBot, wechatBound }: SidebarProps) {
   const { t, dateLocale, weekdayLabels } = useI18n();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today);
@@ -129,13 +130,15 @@ export function Sidebar({ tags, selectedTag, onSelectTag, selectedDate, onSelect
       </div>
 
       <div className="p-4 border-t border-gray-200 space-y-2">
-        <button
-          onClick={onOpenClawBot}
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
-        >
-          <Smartphone size={16} />
-          {t('wechatSync')}
-        </button>
+        {!wechatBound && (
+          <button
+            onClick={onOpenClawBot}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
+          >
+            <Smartphone size={16} />
+            {t('wechatSync')}
+          </button>
+        )}
         <Link href="/settings" className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-md transition-colors">
           <Settings size={16} />
           {t('settings')}

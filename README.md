@@ -94,7 +94,8 @@ go run ./cmd/tfo
 | 配置项 | 说明 | 默认值 |
 |--------|------|--------|
 | `dataDir` | 数据目录路径 | - |
-| `hotkeyQuickCapture` | 快闪记事快捷键 | `Alt+S` |
+| `hotkeyGlobalQuickCapture` | 全局唤起快捷键（桌面端） | `Alt+Shift+F` |
+| `hotkeyInputFocus` | 聚焦输入框快捷键（网页端） | `Alt+S` |
 | `wechat.enabled` | 启用微信 Bot | `false` |
 | `wechat.baseUrl` | 微信 Bot 服务地址 | - |
 | `indexRebuildOnStart` | 启动时重建搜索索引 | `false` |

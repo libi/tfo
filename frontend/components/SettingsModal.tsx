@@ -11,7 +11,7 @@ interface SettingsModalProps {
     initialShortcut: string;
     isSaving: boolean;
     onClose: () => void;
-    onSave: (settings: { locale: Locale; hotkeyQuickCapture: string }) => Promise<void>;
+    onSave: (settings: { locale: Locale; hotkeyInputFocus: string }) => Promise<void>;
 }
 
 export function SettingsModal({ initialLocale, initialShortcut, isSaving, onClose, onSave }: SettingsModalProps) {
@@ -37,7 +37,7 @@ export function SettingsModal({ initialLocale, initialShortcut, isSaving, onClos
             return;
         }
         setError(null);
-        await onSave({ locale: draftLocale, hotkeyQuickCapture: normalizedShortcut });
+        await onSave({ locale: draftLocale, hotkeyInputFocus: normalizedShortcut });
     };
 
     const handleShortcutKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {

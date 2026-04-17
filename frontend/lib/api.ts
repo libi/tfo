@@ -57,8 +57,8 @@ export interface WeChatConfig {
 export interface AppConfig {
     dataDir: string;
     uiLanguage?: string;
-    hotkeyGlobalToggle: string;
-    hotkeyQuickCapture: string;
+    hotkeyGlobalQuickCapture: string;
+    hotkeyInputFocus: string;
     hotkeySave: string;
     wechat: WeChatConfig;
     indexRebuildOnStart: boolean;

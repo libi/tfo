@@ -83,7 +83,7 @@ func runDesktop(state *appState) {
 	// Pre-load Wails popup in background goroutine (hidden).
 	go preloadPopup(state)
 
-	// Register global hotkey Ctrl+Shift+T
+	// Register global hotkey Alt+Shift+F
 	go registerGlobalHotkey()
 
 	systray.Run(func() {
@@ -217,7 +217,7 @@ func (p *PopupAPI) Quit() {
 }
 
 // ---------------------------------------------------------------------------
-// Global Hotkey (Ctrl+Shift+T)
+// Global Hotkey (Alt+Shift+F)
 // ---------------------------------------------------------------------------
 
 const hotkeyID = 1
@@ -227,13 +227,13 @@ func registerGlobalHotkey() {
 	registerHotKey := user32.NewProc("RegisterHotKey")
 	getMessage := user32.NewProc("GetMessageW")
 
-	// MOD_CONTROL=0x0002, MOD_SHIFT=0x0004, VK_T=0x54
-	ret, _, err := registerHotKey.Call(0, uintptr(hotkeyID), 0x0002|0x0004, 0x54)
+	// MOD_ALT=0x0001, MOD_SHIFT=0x0004, VK_F=0x46
+	ret, _, err := registerHotKey.Call(0, uintptr(hotkeyID), 0x0001|0x0004, 0x46)
 	if ret == 0 {
-		slog.Warn("failed to register global hotkey Ctrl+Shift+T", "error", err)
+		slog.Warn("failed to register global hotkey Alt+Shift+F", "error", err)
 		return
 	}
-	slog.Info("global hotkey Ctrl+Shift+T registered")
+	slog.Info("global hotkey Alt+Shift+F registered")
 
 	// Message loop for hotkey events
 	type msg struct {

@@ -10,8 +10,8 @@ import (
 
 func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
-	if cfg.HotkeyQuickCapture != "Alt+S" {
-		t.Errorf("HotkeyQuickCapture = %q, want %q", cfg.HotkeyQuickCapture, "Alt+S")
+	if cfg.HotkeyInputFocus != "Alt+S" {
+		t.Errorf("HotkeyInputFocus = %q, want %q", cfg.HotkeyInputFocus, "Alt+S")
 	}
 	if cfg.WeChat.Enabled {
 		t.Error("WeChat.Enabled should be false by default")
@@ -26,7 +26,7 @@ func TestLoadNonExistent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if cfg.HotkeyQuickCapture != "Alt+S" {
+	if cfg.HotkeyInputFocus != "Alt+S" {
 		t.Errorf("should return defaults")
 	}
 }
@@ -36,7 +36,7 @@ func TestSaveAndLoad(t *testing.T) {
 
 	cfg := DefaultConfig()
 	cfg.DataDir = tmpDir
-	cfg.HotkeyQuickCapture = "Ctrl+Shift+N"
+	cfg.HotkeyInputFocus = "Ctrl+Shift+N"
 	cfg.WeChat.Token = "test-token"
 
 	if err := cfg.Save(); err != nil {
@@ -54,8 +54,8 @@ func TestSaveAndLoad(t *testing.T) {
 		t.Fatalf("Load() error = %v", err)
 	}
 
-	if loaded.HotkeyQuickCapture != "Ctrl+Shift+N" {
-		t.Errorf("HotkeyQuickCapture = %q", loaded.HotkeyQuickCapture)
+	if loaded.HotkeyInputFocus != "Ctrl+Shift+N" {
+		t.Errorf("HotkeyInputFocus = %q", loaded.HotkeyInputFocus)
 	}
 	if loaded.WeChat.Token != "test-token" {
 		t.Errorf("Token = %q", loaded.WeChat.Token)
