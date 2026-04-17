@@ -119,10 +119,13 @@ func (r *Receiver) handleMessage(ctx context.Context, msg *IncomingMessage) erro
 	adapter := r.adapterMap[msg.ChannelType]
 	r.mu.RUnlock()
 
+	log.Printf("[receiver] reply check: enableReply=%v, adapter=%v, replyToken=%q", reply, adapter != nil, msg.ReplyToken)
 	if reply && adapter != nil && msg.ReplyToken != "" {
 		if err := adapter.Reply(ctx, msg.ReplyToken, ReceiptText); err != nil {
-			log.Printf("[receiver] reply to %s: %v", msg.ChannelType, err)
+			log.Printf("[receiver] reply to %s failed: %v", msg.ChannelType, err)
 			// 回复失败不影响笔记创建结果
+		} else {
+			log.Printf("[receiver] reply sent to %s successfully", msg.ChannelType)
 		}
 	}
 

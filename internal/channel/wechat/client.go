@@ -95,6 +95,7 @@ func (c *Client) apiPost(ctx context.Context, baseURL, endpoint string, body []b
 	if err != nil {
 		return nil, fmt.Errorf("weixin api read: %w", err)
 	}
+	log.Printf("[wechat] apiPost %s → HTTP %d, body=%s", u, resp.StatusCode, string(raw))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("weixin api %s %d: %s", endpoint, resp.StatusCode, string(raw))
 	}
@@ -134,10 +135,12 @@ func (c *Client) SendMessage(ctx context.Context, baseURL, token string, msg Sen
 	if err != nil {
 		return err
 	}
+	log.Printf("[wechat] sendmessage request: %s", string(body))
 	raw, err := c.apiPost(ctx, baseURL, "ilink/bot/sendmessage", body, token, defaultAPITimeout)
 	if err != nil {
 		return err
 	}
+	log.Printf("[wechat] sendmessage response: %s", string(raw))
 	var resp SendMessageResponse
 	if err := json.Unmarshal(raw, &resp); err != nil {
 		return fmt.Errorf("weixin sendmessage decode: %w", err)

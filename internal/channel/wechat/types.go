@@ -17,6 +17,13 @@ const (
 	MessageTypeBot  = 2
 )
 
+// MessageState 消息生命周期
+const (
+	MessageStateNew        = 0
+	MessageStateGenerating = 1
+	MessageStateFinish     = 2
+)
+
 // TextItem 文本内容
 type TextItem struct {
 	Text string `json:"text,omitempty"`
@@ -39,7 +46,9 @@ type WeixinMessage struct {
 	MessageID    int64         `json:"message_id,omitempty"`
 	FromUserID   string        `json:"from_user_id,omitempty"`
 	ToUserID     string        `json:"to_user_id,omitempty"`
+	ClientID     string        `json:"client_id,omitempty"`
 	MessageType  int           `json:"message_type,omitempty"`
+	MessageState int           `json:"message_state,omitempty"`
 	ItemList     []MessageItem `json:"item_list,omitempty"`
 	ContextToken string        `json:"context_token,omitempty"`
 	CreateTimeMs int64         `json:"create_time_ms,omitempty"`
@@ -58,11 +67,11 @@ type GetUpdatesRequest struct {
 
 // GetUpdatesResponse getupdates 响应体
 type GetUpdatesResponse struct {
-	Ret           int              `json:"ret"`
-	ErrCode       int              `json:"errcode,omitempty"`
-	ErrMsg        string           `json:"errmsg,omitempty"`
-	Msgs          []WeixinMessage  `json:"msgs,omitempty"`
-	GetUpdatesBuf string           `json:"get_updates_buf,omitempty"`
+	Ret           int             `json:"ret"`
+	ErrCode       int             `json:"errcode,omitempty"`
+	ErrMsg        string          `json:"errmsg,omitempty"`
+	Msgs          []WeixinMessage `json:"msgs,omitempty"`
+	GetUpdatesBuf string          `json:"get_updates_buf,omitempty"`
 }
 
 // SendMessageRequest sendmessage 请求体（用于发送回执）
@@ -86,8 +95,8 @@ type QRCodeResponse struct {
 
 // QRStatusResponse 扫码状态响应
 type QRStatusResponse struct {
-	Status      string `json:"status"` // wait, scaned, confirmed, expired
-	BotToken    string `json:"bot_token,omitempty"`
-	ILinkBotID  string `json:"ilink_bot_id,omitempty"`
-	BaseURL     string `json:"baseurl,omitempty"`
+	Status     string `json:"status"` // wait, scaned, confirmed, expired
+	BotToken   string `json:"bot_token,omitempty"`
+	ILinkBotID string `json:"ilink_bot_id,omitempty"`
+	BaseURL    string `json:"baseurl,omitempty"`
 }

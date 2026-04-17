@@ -152,10 +152,28 @@ func TestBuildParseReplyToken(t *testing.T) {
 	}
 }
 
-func TestBuildReplyToken_Empty(t *testing.T) {
+func TestBuildReplyToken_NoContextToken(t *testing.T) {
 	msg := WeixinMessage{FromUserID: "user1"}
+	token := buildReplyToken(msg)
+	if token == "" {
+		t.Fatal("expected non-empty token even without ContextToken")
+	}
+	uid, ct, ok := parseReplyToken(token)
+	if !ok {
+		t.Fatal("parseReplyToken failed")
+	}
+	if uid != "user1" {
+		t.Fatalf("userID = %q, want user1", uid)
+	}
+	if ct != "" {
+		t.Fatalf("contextToken = %q, want empty", ct)
+	}
+}
+
+func TestBuildReplyToken_Empty(t *testing.T) {
+	msg := WeixinMessage{}
 	if token := buildReplyToken(msg); token != "" {
-		t.Fatalf("expected empty token for missing ContextToken, got %q", token)
+		t.Fatalf("expected empty token for missing FromUserID, got %q", token)
 	}
 }
 

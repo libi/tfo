@@ -2,6 +2,8 @@ package wechat
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"strconv"
@@ -233,9 +235,9 @@ func extractText(msg WeixinMessage) string {
 	return strings.Join(parts, "\n")
 }
 
-// replyToken 格式: "userId|contextToken"
+// replyToken 格式: "userId|contextToken"（contextToken 可为空）
 func buildReplyToken(msg WeixinMessage) string {
-	if strings.TrimSpace(msg.ContextToken) == "" || strings.TrimSpace(msg.FromUserID) == "" {
+	if strings.TrimSpace(msg.FromUserID) == "" {
 		return ""
 	}
 	return msg.FromUserID + "|" + msg.ContextToken
@@ -243,7 +245,7 @@ func buildReplyToken(msg WeixinMessage) string {
 
 func parseReplyToken(token string) (userID, contextToken string, ok bool) {
 	parts := strings.SplitN(token, "|", 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+	if len(parts) != 2 || parts[0] == "" {
 		return "", "", false
 	}
 	return parts[0], parts[1], true
@@ -257,8 +259,10 @@ func (a *WeChatAdapter) Reply(ctx context.Context, replyToken string, text strin
 	}
 	req := SendMessageRequest{
 		Msg: WeixinMessage{
-			ToUserID:    userID,
-			MessageType: MessageTypeBot,
+			ToUserID:     userID,
+			ClientID:     generateClientID(),
+			MessageType:  MessageTypeBot,
+			MessageState: MessageStateFinish,
 			ItemList: []MessageItem{
 				{Type: ItemTypeText, TextItem: &TextItem{Text: text}},
 			},
@@ -317,4 +321,11 @@ func (a *WeChatAdapter) LoginWithQRResult(ctx context.Context, result *QRStatusR
 // GetMessageID 从 WeixinMessage 生成唯一消息 ID
 func GetMessageID(msg WeixinMessage) string {
 	return strconv.FormatInt(msg.MessageID, 10)
+}
+
+// generateClientID 生成唯一的客户端消息 ID
+func generateClientID() string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return "tfo-wechat-" + hex.EncodeToString(b)
 }
