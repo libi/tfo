@@ -110,6 +110,12 @@ export async function listNotesByMonth(month: string): Promise<NoteSummary[]> {
     return res.json();
 }
 
+export async function listNotesRecent(offset = 0, limit = 20): Promise<{ items: NoteSummary[]; total: number }> {
+    const res = await fetch(`${API_BASE}/notes?offset=${offset}&limit=${limit}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
 // --- Tags ---
 
 export async function getAllTags(): Promise<TagCount[]> {
@@ -128,8 +134,8 @@ export async function getHeatmap(month: string): Promise<HeatmapEntry[]> {
 
 // --- Search ---
 
-export async function searchNotes(query: string, limit = 20): Promise<{ results: SearchResult[]; total: number }> {
-    const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&limit=${limit}`);
+export async function searchNotes(query: string, limit = 20, offset = 0): Promise<{ results: SearchResult[]; total: number }> {
+    const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`);
     if (!res.ok) throw new Error(await res.text());
     return res.json();
 }
@@ -163,6 +169,29 @@ export async function updateBootstrap(dataDir: string): Promise<{ dataDir: strin
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dataDir }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+// --- Directory Browse ---
+
+export interface DirEntry {
+    name: string;
+    path: string;
+}
+
+export interface BrowseDirectoryResult {
+    current: string;
+    parent: string;
+    dirs: DirEntry[];
+}
+
+export async function browseDirectory(path?: string): Promise<BrowseDirectoryResult> {
+    const res = await fetch(`${API_BASE}/browse-directory`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: path || '' }),
     });
     if (!res.ok) throw new Error(await res.text());
     return res.json();

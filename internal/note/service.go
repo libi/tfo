@@ -94,6 +94,14 @@ func (s *Service) ListByMonth(ctx context.Context, month string) ([]*NoteSummary
 	return s.store.ListByMonth(ctx, month)
 }
 
+// ListRecent 按时间倒序列出所有笔记
+func (s *Service) ListRecent(ctx context.Context, offset, limit int) ([]*NoteSummary, int, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	return s.store.ListRecent(ctx, offset, limit)
+}
+
 // GetHeatmap 获取日历热力图数据
 func (s *Service) GetHeatmap(ctx context.Context, month string) ([]CalendarHeatmapEntry, error) {
 	if _, err := time.ParseInLocation("2006-01", month, time.Local); err != nil {
@@ -132,14 +140,14 @@ func (s *Service) GetAllTags(ctx context.Context) ([]TagCount, error) {
 }
 
 // Search 全文搜索
-func (s *Service) Search(ctx context.Context, query string, limit int) ([]*search.SearchResult, int, error) {
+func (s *Service) Search(ctx context.Context, query string, offset, limit int) ([]*search.SearchResult, int, error) {
 	if s.searcher == nil {
 		return nil, 0, fmt.Errorf("search not initialized")
 	}
 	if limit <= 0 {
 		limit = 20
 	}
-	return s.searcher.Search(ctx, query, 0, limit)
+	return s.searcher.Search(ctx, query, offset, limit)
 }
 
 // SearchByTag 按标签搜索

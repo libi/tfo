@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -65,6 +67,7 @@ func New(deps *Dependencies) *gin.Engine {
 		api.GET("/config", getConfig(deps))
 		api.PUT("/config", updateConfig(deps))
 		api.PUT("/bootstrap", updateBootstrap(deps))
+		api.POST("/browse-directory", browseDirectory())
 		api.GET("/wechat/states", getChannelStates(deps))
 		api.POST("/wechat/start", startWeChat(deps))
 		api.POST("/wechat/stop", stopWeChat(deps))
@@ -185,7 +188,17 @@ func listNotes(deps *Dependencies) gin.HandlerFunc {
 			c.JSON(http.StatusOK, notes)
 			return
 		}
-		c.JSON(http.StatusOK, []interface{}{})
+		// Default: return recent notes with pagination
+		limitStr := c.DefaultQuery("limit", "20")
+		limit, _ := strconv.Atoi(limitStr)
+		offsetStr := c.DefaultQuery("offset", "0")
+		offset, _ := strconv.Atoi(offsetStr)
+		notes, total, err := deps.NoteService.ListRecent(ctx, offset, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"items": notes, "total": total})
 	}
 }
 
@@ -221,7 +234,9 @@ func searchNotes(deps *Dependencies) gin.HandlerFunc {
 		q := c.Query("q")
 		limitStr := c.DefaultQuery("limit", "20")
 		limit, _ := strconv.Atoi(limitStr)
-		results, total, err := deps.NoteService.Search(c.Request.Context(), q, limit)
+		offsetStr := c.DefaultQuery("offset", "0")
+		offset, _ := strconv.Atoi(offsetStr)
+		results, total, err := deps.NoteService.Search(c.Request.Context(), q, offset, limit)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -449,6 +464,72 @@ func loginWithQRCode(deps *Dependencies) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"status": "connected"})
+	}
+}
+
+func browseDirectory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req struct {
+			Path string `json:"path"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			req.Path = ""
+		}
+
+		dir := req.Path
+		if dir == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			dir = home
+		}
+
+		// Resolve to absolute path
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+			return
+		}
+		dir = absDir
+
+		info, err := os.Stat(dir)
+		if err != nil || !info.IsDir() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "path is not a valid directory"})
+			return
+		}
+
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		type dirEntry struct {
+			Name string `json:"name"`
+			Path string `json:"path"`
+		}
+		dirs := make([]dirEntry, 0)
+		for _, e := range entries {
+			if e.IsDir() && !strings.HasPrefix(e.Name(), ".") {
+				dirs = append(dirs, dirEntry{
+					Name: e.Name(),
+					Path: filepath.Join(dir, e.Name()),
+				})
+			}
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			parent = ""
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"current": dir,
+			"parent":  parent,
+			"dirs":    dirs,
+		})
 	}
 }
 

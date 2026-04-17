@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Send } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Send, Loader2 } from 'lucide-react';
 import type { Fragment } from '@/types';
 import { FragmentCard } from './FragmentCard';
 import { useI18n } from './I18nProvider';
@@ -13,6 +13,9 @@ interface MainContentProps {
   quickCaptureShortcut: string;
   saveShortcut: string;
   isLoading?: boolean;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 function SkeletonCard() {
@@ -32,7 +35,28 @@ function SkeletonCard() {
   );
 }
 
-export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, quickCaptureShortcut, saveShortcut, isLoading }: MainContentProps) {
+function LoadMoreSentinel({ isLoadingMore, onLoadMore }: { isLoadingMore?: boolean; onLoadMore?: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !onLoadMore) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) onLoadMore(); },
+      { rootMargin: '200px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onLoadMore]);
+
+  return (
+    <div ref={ref} className="flex justify-center py-4">
+      {isLoadingMore && <Loader2 size={20} className="animate-spin text-gray-400" />}
+    </div>
+  );
+}
+
+export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, quickCaptureShortcut, saveShortcut, isLoading, hasMore, isLoadingMore, onLoadMore }: MainContentProps) {
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -115,6 +139,9 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
               fragments.map(fragment => (
                 <FragmentCard key={fragment.id} fragment={fragment} />
               ))
+            )}
+            {!isLoading && hasMore && (
+              <LoadMoreSentinel isLoadingMore={isLoadingMore} onLoadMore={onLoadMore} />
             )}
           </div>
         </div>

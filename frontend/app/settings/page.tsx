@@ -52,6 +52,32 @@ export default function SettingsPage() {
     const [showDataDirConfirm, setShowDataDirConfirm] = useState(false);
     const [dataDirSaving, setDataDirSaving] = useState(false);
 
+    // Directory browser
+    const [showDirBrowser, setShowDirBrowser] = useState(false);
+    const [browseCurrent, setBrowseCurrent] = useState('');
+    const [browseParent, setBrowseParent] = useState('');
+    const [browseDirs, setBrowseDirs] = useState<api.DirEntry[]>([]);
+    const [browseLoading, setBrowseLoading] = useState(false);
+
+    const loadDirectory = useCallback(async (path: string) => {
+        setBrowseLoading(true);
+        try {
+            const result = await api.browseDirectory(path);
+            setBrowseCurrent(result.current);
+            setBrowseParent(result.parent);
+            setBrowseDirs(result.dirs);
+        } catch {
+            // ignore
+        } finally {
+            setBrowseLoading(false);
+        }
+    }, []);
+
+    const handleDirSelect = (path: string) => {
+        setNewDataDir(path);
+        setShowDirBrowser(false);
+    };
+
     useEffect(() => { setMounted(true); }, []);
 
     const loadConfig = useCallback(async () => {
@@ -210,13 +236,22 @@ export default function SettingsPage() {
                                         <TriangleAlert size={16} className="mt-0.5 flex-shrink-0" />
                                         <span>{t('settingsDataDirChangeWarning')}</span>
                                     </div>
-                                    <input
-                                        type="text"
-                                        value={newDataDir}
-                                        onChange={e => setNewDataDir(e.target.value)}
-                                        placeholder={t('settingsDataDirPlaceholder')}
-                                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm text-gray-800 focus:border-gray-400 focus:outline-none"
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newDataDir}
+                                            onChange={e => setNewDataDir(e.target.value)}
+                                            placeholder={t('settingsDataDirPlaceholder')}
+                                            className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 font-mono text-sm text-gray-800 focus:border-gray-400 focus:outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => { setShowDirBrowser(true); loadDirectory(newDataDir || config.dataDir || ''); }}
+                                            className="shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+                                        >
+                                            {t('settingsDataDirBrowse')}
+                                        </button>
+                                    </div>
                                     <p className="text-xs text-amber-700">{t('settingsDataDirRestartHint')}</p>
                                     <div className="flex gap-2">
                                         <button
@@ -443,6 +478,67 @@ export default function SettingsPage() {
 
             {showRebind && (
                 <ClawBotModal onClose={() => { setShowRebind(false); loadConfig(); }} />
+            )}
+
+            {showDirBrowser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+                    <div className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                            <h3 className="text-lg font-semibold text-gray-900">{t('settingsDataDirBrowse')}</h3>
+                            <button onClick={() => setShowDirBrowser(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+                        </div>
+                        <div className="px-6 py-2">
+                            <div className="mb-2 rounded-lg bg-gray-50 px-3 py-2 font-mono text-sm text-gray-700 truncate" title={browseCurrent}>
+                                {browseCurrent || '—'}
+                            </div>
+                        </div>
+                        <div className="max-h-72 overflow-y-auto px-6">
+                            {browseLoading ? (
+                                <div className="py-8 text-center text-sm text-gray-400">{t('savingButton')}</div>
+                            ) : (
+                                <ul className="divide-y divide-gray-50">
+                                    {browseParent && (
+                                        <li>
+                                            <button
+                                                onClick={() => loadDirectory(browseParent)}
+                                                className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm text-gray-600 hover:bg-gray-50 rounded"
+                                            >
+                                                📁 <span className="text-gray-400">..</span>
+                                            </button>
+                                        </li>
+                                    )}
+                                    {browseDirs.map(d => (
+                                        <li key={d.path}>
+                                            <button
+                                                onClick={() => loadDirectory(d.path)}
+                                                className="flex w-full items-center gap-2 px-2 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded"
+                                            >
+                                                📁 {d.name}
+                                            </button>
+                                        </li>
+                                    ))}
+                                    {!browseParent && browseDirs.length === 0 && (
+                                        <li className="py-4 text-center text-sm text-gray-400">Empty</li>
+                                    )}
+                                </ul>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
+                            <button
+                                onClick={() => setShowDirBrowser(false)}
+                                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                            >
+                                {t('cancelButton')}
+                            </button>
+                            <button
+                                onClick={() => handleDirSelect(browseCurrent)}
+                                className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800"
+                            >
+                                {t('settingsDataDirChangeButton')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

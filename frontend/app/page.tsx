@@ -13,6 +13,7 @@ import { matchesShortcut, normalizeShortcut } from '@/lib/hotkeys';
 
 const defaultQuickCaptureShortcut = 'Alt+S';
 const defaultSaveShortcut = 'Ctrl+Enter';
+const PAGE_SIZE = 20;
 
 function isEditableTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
@@ -31,6 +32,9 @@ export default function Home() {
   const [allTags, setAllTags] = useState<string[]>([]);
   const [appConfig, setAppConfig] = useState<api.AppConfig | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [searchTotal, setSearchTotal] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -63,25 +67,27 @@ export default function Home() {
     if (mounted) refreshConfig();
   }, [mounted, refreshConfig]);
 
-  // Load notes by month or date
+  // Load notes
   const loadNotes = useCallback(async () => {
     if (!mounted) return;
     setIsLoading(true);
     try {
-      let summaries: api.NoteSummary[];
       if (selectedDate) {
-        summaries = await api.listNotesByDate(format(selectedDate, 'yyyy-MM-dd'));
+        const summaries = await api.listNotesByDate(format(selectedDate, 'yyyy-MM-dd'));
+        const frags: Fragment[] = (summaries || []).map(s => ({
+          id: s.id, title: s.title, content: s.preview, date: s.createdAt, tags: s.tags || [],
+        }));
+        setFragments(frags);
+        setHasMore(false);
       } else {
-        summaries = await api.listNotesByMonth(format(new Date(), 'yyyy-MM'));
+        const { items, total } = await api.listNotesRecent(0, PAGE_SIZE);
+        const frags: Fragment[] = (items || []).map(s => ({
+          id: s.id, title: s.title, content: s.preview, date: s.createdAt, tags: s.tags || [],
+        }));
+        setFragments(frags);
+        setHasMore(frags.length < total);
       }
-      const frags: Fragment[] = (summaries || []).map(s => ({
-        id: s.id,
-        title: s.title,
-        content: s.preview,
-        date: s.createdAt,
-        tags: s.tags || [],
-      }));
-      setFragments(frags);
+      setSearchTotal(0);
     } catch (err) {
       console.error('Failed to load notes:', err);
     } finally {
@@ -99,7 +105,7 @@ export default function Home() {
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const { results } = await api.searchNotes(searchQuery);
+        const { results, total } = await api.searchNotes(searchQuery, PAGE_SIZE, 0);
         setFragments((results || []).map(r => {
           const frag = r.fragments?.[0];
           return {
@@ -111,6 +117,8 @@ export default function Home() {
             highlights: frag?.highlights,
           };
         }));
+        setSearchTotal(total);
+        setHasMore((results || []).length < total);
       } catch (err) {
         console.error('Search failed:', err);
       } finally {
@@ -141,6 +149,34 @@ export default function Home() {
       throw err;
     }
   };
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    try {
+      const offset = fragments.length;
+      if (searchQuery.trim()) {
+        const { results, total } = await api.searchNotes(searchQuery, PAGE_SIZE, offset);
+        const newFrags = (results || []).map(r => {
+          const frag = r.fragments?.[0];
+          return {
+            id: r.id, title: r.title, content: frag?.text || '', date: '', tags: [] as string[], highlights: frag?.highlights,
+          };
+        });
+        setFragments(prev => [...prev, ...newFrags]);
+        setHasMore(offset + newFrags.length < total);
+      } else if (!selectedDate) {
+        const { items, total } = await api.listNotesRecent(offset, PAGE_SIZE);
+        const newFrags = (items || []).map(s => ({
+          id: s.id, title: s.title, content: s.preview, date: s.createdAt, tags: s.tags || [],
+        }));
+        setFragments(prev => [...prev, ...newFrags]);
+        setHasMore(offset + newFrags.length < total);
+      }
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, searchQuery, fragments.length, selectedDate]);
 
   const quickCaptureShortcut = normalizeShortcut(appConfig?.hotkeyInputFocus || defaultQuickCaptureShortcut);
   const saveShortcut = normalizeShortcut(appConfig?.hotkeySave || defaultSaveShortcut);
@@ -183,6 +219,9 @@ export default function Home() {
         quickCaptureShortcut={quickCaptureShortcut}
         saveShortcut={saveShortcut}
         isLoading={isLoading}
+        hasMore={hasMore}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={loadMore}
       />
 
       {isClawBotModalOpen && (

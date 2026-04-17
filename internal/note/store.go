@@ -27,6 +27,7 @@ type Store interface {
 	Delete(ctx context.Context, id string) error
 	ListByMonth(ctx context.Context, month string) ([]*NoteSummary, error)
 	ListByDate(ctx context.Context, date time.Time) ([]*NoteSummary, error)
+	ListRecent(ctx context.Context, offset, limit int) ([]*NoteSummary, int, error)
 	ScanAll(ctx context.Context, callback func(*Note) error) error
 	GetHeatmap(ctx context.Context, month string) ([]CalendarHeatmapEntry, error)
 }
@@ -197,6 +198,49 @@ func (fs *FileStore) ListByDate(ctx context.Context, date time.Time) ([]*NoteSum
 		return summaries[i].CreatedAt.After(summaries[j].CreatedAt)
 	})
 	return summaries, nil
+}
+
+// ListRecent 按时间倒序列出所有笔记摘要，支持分页
+func (fs *FileStore) ListRecent(ctx context.Context, offset, limit int) ([]*NoteSummary, int, error) {
+	entries, err := os.ReadDir(fs.rootDir)
+	if err != nil {
+		return nil, 0, fmt.Errorf("read root dir: %w", err)
+	}
+
+	// Collect month dirs in reverse order (newest first)
+	var monthDirs []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		if _, err := time.ParseInLocation(monthDirFormat, e.Name(), time.Local); err == nil {
+			monthDirs = append(monthDirs, e.Name())
+		}
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(monthDirs)))
+
+	var all []*NoteSummary
+	for _, month := range monthDirs {
+		monthSummaries, err := fs.ListByMonth(ctx, month)
+		if err != nil {
+			continue
+		}
+		all = append(all, monthSummaries...)
+	}
+
+	sort.Slice(all, func(i, j int) bool {
+		return all[i].CreatedAt.After(all[j].CreatedAt)
+	})
+
+	total := len(all)
+	if offset >= total {
+		return nil, total, nil
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return all[offset:end], total, nil
 }
 
 // ScanAll 全量扫描所有 .md 文件

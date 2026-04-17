@@ -66,6 +66,7 @@ export const messages = {
         settingsDataDirPlaceholder: 'Enter the absolute path to data directory',
         settingsDataDirChangeWarning: 'After changing the data directory, all data and configuration will be read from the new directory. You can manually copy your current data directory to the new location before making this change.',
         settingsDataDirChangeButton: 'Change Data Directory',
+        settingsDataDirBrowse: 'Browse…',
         settingsDataDirRestartHint: 'The application needs to restart after changing the data directory.',
         settingsWeChatTitle: 'WeChat ClawBot',
         settingsWeChatEnabled: 'Enable WeChat sync',
@@ -87,6 +88,7 @@ export const messages = {
         expandContent: 'Show full content',
         collapseContent: 'Collapse',
         loadingContent: 'Loading…',
+        loadMore: 'Load more',
     },
     'zh-CN': {
         appDescription: '一个本地优先、用于记录稍纵即逝想法的记事本。',
@@ -147,6 +149,7 @@ export const messages = {
         settingsDataDirPlaceholder: '请输入数据目录的绝对路径',
         settingsDataDirChangeWarning: '修改数据目录后，所有数据和配置将从新的目录中读取。建议您先手动将当前数据目录的内容复制到新的目录后再进行修改。',
         settingsDataDirChangeButton: '修改数据目录',
+        settingsDataDirBrowse: '浏览…',
         settingsDataDirRestartHint: '修改数据目录后需要重启应用才能生效。',
         settingsWeChatTitle: '微信 ClawBot',
         settingsWeChatEnabled: '启用微信同步',
@@ -168,6 +171,7 @@ export const messages = {
         expandContent: '展开全文',
         collapseContent: '收起',
         loadingContent: '加载中…',
+        loadMore: '加载更多',
     },
 } as const;
 
