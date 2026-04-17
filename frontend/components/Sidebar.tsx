@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Calendar as CalendarIcon, Hash, Settings, Smartphone } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Hash, Settings, Smartphone } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { useI18n } from './I18nProvider';
 
 interface SidebarProps {
@@ -15,11 +15,15 @@ interface SidebarProps {
 
 export function Sidebar({ tags, selectedTag, onSelectTag, selectedDate, onSelectDate, onOpenClawBot }: SidebarProps) {
   const { t, dateLocale, weekdayLabels } = useI18n();
-  // Simple calendar for current month
   const today = new Date();
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
+  const [currentMonth, setCurrentMonth] = useState(today);
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  const goToPrevMonth = () => setCurrentMonth(prev => subMonths(prev, 1));
+  const goToNextMonth = () => setCurrentMonth(prev => addMonths(prev, 1));
+  const goToToday = () => setCurrentMonth(today);
 
   return (
     <aside className="w-64 border-r border-gray-200 bg-[#f7f7f7] flex flex-col h-full shrink-0">
@@ -37,10 +41,18 @@ export function Sidebar({ tags, selectedTag, onSelectTag, selectedDate, onSelect
         {/* Calendar Section */}
         <div>
           <div className="flex items-center justify-between mb-3 px-2">
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-              <CalendarIcon size={14} />
-              {format(today, 'MMMM yyyy', { locale: dateLocale })}
-            </h2>
+            <div className="flex items-center gap-1">
+              <button onClick={goToPrevMonth} className="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors">
+                <ChevronLeft size={14} />
+              </button>
+              <button onClick={goToToday} className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 hover:text-gray-600 transition-colors">
+                <CalendarIcon size={14} />
+                {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
+              </button>
+              <button onClick={goToNextMonth} className="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors">
+                <ChevronRight size={14} />
+              </button>
+            </div>
             {selectedDate && (
               <button
                 onClick={() => onSelectDate(null)}

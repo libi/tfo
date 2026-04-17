@@ -9,18 +9,29 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-        href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=JetBrains+Mono:wght@400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap"
         rel="stylesheet" />
     <style>
         :root {
-            --text: #37352f;
-            --text-light: #6b6b6b;
-            --bg: #ffffff;
-            --bg-code: #f7f6f3;
-            --border: #e8e7e4;
-            --accent: #e16531;
-            --accent-hover: #c9552a;
-            --link: #0969da;
+            --text: #111827;
+            /* gray-900 */
+            --text-secondary: #6b7280;
+            /* gray-500 */
+            --text-muted: #9ca3af;
+            /* gray-400 */
+            --bg: #fafafa;
+            --bg-white: #ffffff;
+            --bg-subtle: #f7f7f7;
+            --bg-muted: #f9fafb;
+            /* gray-50 */
+            --border: #e5e7eb;
+            /* gray-200 */
+            --border-light: #f3f4f6;
+            /* gray-100 */
+            --primary: #1f2937;
+            /* gray-800 */
+            --primary-hover: #111827;
+            /* gray-900 */
             --max-w: 780px;
         }
 
@@ -35,11 +46,16 @@
         }
 
         body {
-            font-family: 'Noto Serif SC', 'Georgia', serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             color: var(--text);
             background: var(--bg);
-            line-height: 1.8;
+            line-height: 1.7;
             -webkit-font-smoothing: antialiased;
+        }
+
+        ::selection {
+            background: #e5e7eb;
+            color: var(--text);
         }
 
         /* ---- Layout ---- */
@@ -53,11 +69,11 @@
         nav {
             position: sticky;
             top: 0;
-            background: rgba(255, 255, 255, .88);
+            z-index: 100;
+            background: rgba(250, 250, 250, .86);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border);
-            z-index: 100;
         }
 
         nav .container {
@@ -68,15 +84,29 @@
         }
 
         nav .logo {
-            font-size: 1.1rem;
-            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             text-decoration: none;
             color: var(--text);
-            letter-spacing: -0.02em;
         }
 
-        nav .logo span {
-            color: var(--accent);
+        nav .logo-name {
+            font-size: 1.15rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1;
+        }
+
+        nav .logo-label {
+            border-left: 1px solid var(--border);
+            padding-left: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.22em;
+            color: var(--text-muted);
+            line-height: 1;
         }
 
         nav .links {
@@ -85,8 +115,8 @@
         }
 
         nav .links a {
-            font-size: .88rem;
-            color: var(--text-light);
+            font-size: .84rem;
+            color: var(--text-secondary);
             text-decoration: none;
             transition: color .2s;
         }
@@ -97,32 +127,57 @@
 
         /* ---- Hero ---- */
         .hero {
-            padding: 80px 0 60px;
+            padding: 72px 0 48px;
             text-align: center;
         }
 
         .hero h1 {
-            font-size: 2.4rem;
+            font-size: 2.2rem;
             font-weight: 700;
             letter-spacing: -0.03em;
-            line-height: 1.3;
+            line-height: 1.25;
             margin-bottom: 16px;
+            color: var(--text);
         }
 
         .hero h1 .flash {
-            color: var(--accent);
+            color: var(--primary);
+            position: relative;
+        }
+
+        .hero h1 .flash::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 2px;
+            width: 100%;
+            height: 3px;
+            background: var(--text);
+            opacity: .15;
+            border-radius: 2px;
+        }
+
+        .hero .brand-label {
+            display: inline-block;
+            margin-bottom: 20px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.22em;
+            color: var(--text-muted);
         }
 
         .hero .subtitle {
-            font-size: 1.1rem;
-            color: var(--text-light);
-            max-width: 520px;
-            margin: 0 auto 36px;
+            font-size: .95rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            max-width: 480px;
+            margin: 0 auto 32px;
         }
 
         .hero .actions {
             display: flex;
-            gap: 12px;
+            gap: 10px;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -131,10 +186,11 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 10px 24px;
-            border-radius: 6px;
-            font-size: .92rem;
+            padding: 9px 22px;
+            border-radius: 8px;
+            font-size: .86rem;
             font-family: inherit;
+            font-weight: 500;
             text-decoration: none;
             cursor: pointer;
             transition: all .2s;
@@ -142,34 +198,34 @@
         }
 
         .btn-primary {
-            background: var(--accent);
+            background: var(--primary);
             color: #fff;
-            border-color: var(--accent);
+            border-color: var(--primary);
         }
 
         .btn-primary:hover {
-            background: var(--accent-hover);
-            border-color: var(--accent-hover);
+            background: var(--primary-hover);
         }
 
         .btn-outline {
-            background: transparent;
+            background: var(--bg-white);
             color: var(--text);
             border-color: var(--border);
         }
 
         .btn-outline:hover {
-            border-color: var(--text-light);
+            border-color: var(--text-secondary);
         }
 
         /* ---- Screenshot ---- */
         .screenshot {
-            margin: 0 auto 80px;
+            margin: 0 auto 72px;
             max-width: 680px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 8px 40px rgba(0, 0, 0, .06);
+            background: var(--bg-white);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, .04);
         }
 
         .screenshot img {
@@ -180,57 +236,85 @@
         .screenshot-placeholder {
             width: 100%;
             aspect-ratio: 16/10;
-            background: var(--bg-code);
+            background: var(--bg-muted);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--text-light);
-            font-size: .9rem;
+            color: var(--text-muted);
+            font-size: .84rem;
         }
 
         /* ---- Section ---- */
         section {
-            padding: 60px 0;
+            padding: 56px 0;
         }
 
         section+section {
-            border-top: 1px solid var(--border);
+            border-top: 1px solid var(--border-light);
+        }
+
+        .section-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
         }
 
         h2 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin-bottom: 32px;
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin-bottom: 28px;
             letter-spacing: -0.02em;
         }
 
         h3 {
-            font-size: 1.15rem;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-size: .95rem;
+            font-weight: 600;
+            margin-bottom: 6px;
         }
 
         /* ---- Features ---- */
         .features-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 36px 48px;
+            gap: 24px;
+        }
+
+        .feature {
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            background: var(--bg-white);
+            transition: box-shadow .2s;
+        }
+
+        .feature:hover {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, .04);
+        }
+
+        .feature h3 {
+            font-size: .88rem;
+            font-weight: 600;
+            margin-bottom: 6px;
         }
 
         .feature p {
-            color: var(--text-light);
-            font-size: .94rem;
+            color: var(--text-secondary);
+            font-size: .84rem;
+            line-height: 1.7;
         }
 
-        /* ---- Architecture (code block style) ---- */
+        /* ---- Architecture ---- */
         .arch-block {
-            background: var(--bg-code);
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            background: var(--bg-muted);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
             padding: 24px 28px;
             overflow-x: auto;
             font-family: 'JetBrains Mono', monospace;
-            font-size: .82rem;
+            font-size: .78rem;
             line-height: 1.7;
             white-space: pre;
             color: var(--text);
@@ -244,7 +328,7 @@
         .step {
             position: relative;
             padding-left: 40px;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
 
         .step::before {
@@ -252,41 +336,43 @@
             content: counter(step);
             position: absolute;
             left: 0;
-            top: 2px;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: var(--bg-code);
+            top: 1px;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: var(--bg-muted);
             border: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: .8rem;
-            font-weight: 700;
-            color: var(--text-light);
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
         }
 
         .step h3 {
-            margin-bottom: 4px;
+            margin-bottom: 3px;
+            font-size: .88rem;
         }
 
         .step p {
-            color: var(--text-light);
-            font-size: .94rem;
+            color: var(--text-secondary);
+            font-size: .86rem;
         }
 
         code {
             font-family: 'JetBrains Mono', monospace;
-            font-size: .85em;
-            background: var(--bg-code);
+            font-size: .82em;
+            background: var(--bg-muted);
             padding: 2px 6px;
             border-radius: 4px;
+            border: 1px solid var(--border-light);
         }
 
         pre {
-            background: var(--bg-code);
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            background: var(--bg-muted);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
             padding: 16px 20px;
             overflow-x: auto;
             margin-top: 10px;
@@ -295,7 +381,8 @@
         pre code {
             background: none;
             padding: 0;
-            font-size: .84rem;
+            border: none;
+            font-size: .8rem;
             line-height: 1.6;
         }
 
@@ -303,40 +390,40 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: .92rem;
+            font-size: .86rem;
         }
 
         th,
         td {
             text-align: left;
             padding: 10px 14px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-light);
         }
 
         th {
-            font-weight: 700;
-            color: var(--text-light);
-            font-size: .82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: .75rem;
             text-transform: uppercase;
-            letter-spacing: .04em;
+            letter-spacing: .06em;
         }
 
         /* ---- Footer ---- */
         footer {
-            border-top: 1px solid var(--border);
+            border-top: 1px solid var(--border-light);
             padding: 32px 0;
             text-align: center;
-            color: var(--text-light);
-            font-size: .84rem;
+            color: var(--text-muted);
+            font-size: .8rem;
         }
 
         footer a {
-            color: var(--link);
+            color: var(--text-secondary);
             text-decoration: none;
         }
 
         footer a:hover {
-            text-decoration: underline;
+            color: var(--text);
         }
 
         /* ---- Showcase Tabs ---- */
@@ -348,37 +435,72 @@
         }
 
         .showcase-tabs .tab {
-            padding: 6px 20px;
-            font-size: .86rem;
+            padding: 6px 18px;
+            font-size: .8rem;
             font-family: inherit;
-            background: var(--bg-code);
-            border: 1px solid var(--border);
-            border-radius: 6px 6px 0 0;
+            font-weight: 500;
+            background: var(--bg-muted);
+            border: 1px solid var(--border-light);
+            border-radius: 8px 8px 0 0;
             cursor: pointer;
-            color: var(--text-light);
+            color: var(--text-muted);
             transition: all .2s;
         }
 
         .showcase-tabs .tab.active {
-            background: #fff;
+            background: var(--bg-white);
             color: var(--text);
-            border-bottom-color: #fff;
-            font-weight: 700;
+            border-bottom-color: var(--bg-white);
+            font-weight: 600;
+        }
+
+        /* ---- Tech Stack badges ---- */
+        .tech-grid {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .tech-grid>div {
+            padding: 16px;
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            background: var(--bg-white);
+        }
+
+        .tech-grid h3 {
+            font-size: .82rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .tech-grid p {
+            color: var(--text-secondary);
+            font-size: .8rem;
+            line-height: 1.6;
         }
 
         /* ---- Responsive ---- */
         @media (max-width: 640px) {
             .hero h1 {
-                font-size: 1.8rem;
+                font-size: 1.7rem;
             }
 
             .features-grid {
                 grid-template-columns: 1fr;
-                gap: 28px;
+            }
+
+            .tech-grid {
+                grid-template-columns: 1fr;
             }
 
             nav .links {
-                gap: 16px;
+                gap: 14px;
+            }
+
+            nav .logo-label {
+                display: none;
             }
         }
     </style>
@@ -389,11 +511,14 @@
     <!-- Nav -->
     <nav>
         <div class="container">
-            <a class="logo" href="#">⚡ <span>TFO</span></a>
+            <a class="logo" href="#">
+                <span class="logo-name">TFO</span>
+                <span class="logo-label">The Flash Note</span>
+            </a>
             <div class="links">
                 <a href="#features">特性</a>
                 <a href="#quickstart">快速开始</a>
-                <a href="#architecture">架构</a>
+                <a href="#architecture">无数据库</a>
                 <a href="https://github.com/libi/tfo" target="_blank">GitHub</a>
             </div>
         </div>
@@ -402,8 +527,9 @@
     <!-- Hero -->
     <header class="hero">
         <div class="container">
+            <p class="brand-label">The Flash Note · 快闪记事本</p>
             <h1><span class="flash">T</span>he <span class="flash">F</span>lash N<span class="flash">o</span>te</h1>
-            <p class="subtitle">快捷键呼出，一秒记录灵感；微信发送，即刻保存为笔记。<br />纯 Markdown 本地存储，无云端依赖，数据完全属于你。</p>
+            <p class="subtitle">微信发送，即刻保存为笔记; 快捷键呼出，一秒记录灵感。<br />无数据库，文本文件存储，无云端依赖，复制即迁移。</p>
             <div class="actions">
                 <a class="btn btn-primary" href="https://github.com/libi/tfo/releases">↓ 下载</a>
                 <a class="btn btn-outline" href="https://github.com/libi/tfo">查看源码</a>
@@ -462,10 +588,10 @@
                 <g opacity="0">
                     <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.28;0.32;0.52;0.56" dur="2s"
                         repeatCount="indefinite" />
-                    <line x1="290" y1="210" x2="390" y2="210" stroke="var(--accent)" stroke-width="2"
+                    <line x1="290" y1="210" x2="390" y2="210" stroke="var(--primary)" stroke-width="2"
                         stroke-dasharray="6,4" />
-                    <polygon points="392,210 382,204 382,216" fill="var(--accent)" />
-                    <text x="340" y="198" text-anchor="middle" font-size="11" fill="var(--accent)"
+                    <polygon points="392,210 382,204 382,216" fill="var(--primary)" />
+                    <text x="340" y="198" text-anchor="middle" font-size="11" fill="var(--primary)"
                         font-family="sans-serif">自动保存</text>
                 </g>
                 <!-- Markdown file: appears at 40% -->
@@ -485,7 +611,7 @@
                     <line x1="426" y1="130" x2="610" y2="130" stroke="#e8e7e4" stroke-width="1" />
                     <text x="426" y="155" font-size="12" fill="#555" font-family="sans-serif">今天的会议纪要</text>
                     <line x1="426" y1="168" x2="610" y2="168" stroke="#f0f0f0" stroke-width="0.5" />
-                    <text x="426" y="190" font-size="12" fill="#e16531" font-family="sans-serif">#idea</text>
+                    <text x="426" y="190" font-size="12" fill="var(--primary)" font-family="sans-serif">#idea</text>
                     <text x="470" y="190" font-size="12" fill="#555" font-family="sans-serif">新功能想法</text>
                     <line x1="426" y1="203" x2="610" y2="203" stroke="#f0f0f0" stroke-width="0.5" />
                     <text x="426" y="225" font-size="12" fill="#555" font-family="sans-serif">明天买牛奶 🥛</text>
@@ -497,24 +623,25 @@
         <div class="screenshot" id="tab-1" style="display:none;">
             <!-- Quick Capture SVG animation -->
             <svg viewBox="0 0 680 400" xmlns="http://www.w3.org/2000/svg"
-                style="width:100%;display:block;background:#fafaf8;">
+                style="width:100%;display:block;background:var(--bg-white);">
                 <!-- Desktop background -->
-                <rect x="40" y="30" width="600" height="340" rx="10" fill="#e8e7e4" />
+                <rect x="40" y="30" width="600" height="340" rx="10" fill="var(--bg-muted)" />
                 <!-- Menu bar -->
-                <rect x="40" y="30" width="600" height="24" rx="10" fill="#f7f6f3" />
-                <text x="340" y="46" text-anchor="middle" font-size="10" fill="#999" font-family="sans-serif">桌面</text>
+                <rect x="40" y="30" width="600" height="24" rx="10" fill="var(--bg-white)" />
+                <text x="340" y="46" text-anchor="middle" font-size="10" fill="var(--text-muted)"
+                    font-family="Inter,sans-serif">桌面</text>
                 <!-- Tray icon (always visible) -->
-                <text x="600" y="46" text-anchor="middle" font-size="11" fill="var(--accent)"
+                <text x="600" y="46" text-anchor="middle" font-size="11" fill="var(--primary)"
                     font-family="sans-serif">⚡</text>
 
                 <!-- Hotkey hint: visible immediately, fades out at 20% -->
                 <g>
                     <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.15;0.22;1" dur="3s"
                         repeatCount="indefinite" />
-                    <rect x="240" y="100" width="200" height="44" rx="8" fill="#fff" stroke="#d1d1d1"
+                    <rect x="240" y="100" width="200" height="44" rx="8" fill="var(--bg-white)" stroke="var(--border)"
                         stroke-width="1" />
-                    <text x="340" y="127" text-anchor="middle" font-size="14" fill="#37352f" font-family="sans-serif"
-                        font-weight="700">⌨️ Alt + S</text>
+                    <text x="340" y="127" text-anchor="middle" font-size="14" fill="var(--text)"
+                        font-family="Inter,sans-serif" font-weight="600">⌨️ Alt + S</text>
                 </g>
 
                 <!-- Popup window: appears at 18% -->
@@ -522,45 +649,48 @@
                     <animate attributeName="opacity" values="0;0;1;1;1;1" keyTimes="0;0.18;0.24;0.82;0.90;1" dur="3s"
                         repeatCount="indefinite" />
                     <!-- Window frame -->
-                    <rect x="140" y="90" width="400" height="220" rx="12" fill="#fff" stroke="#d1d1d1"
-                        stroke-width="1.5" />
-                    <!-- Title bar -->
-                    <rect x="140" y="90" width="400" height="36" rx="12" fill="#f7f6f3" />
-                    <circle cx="160" cy="108" r="5" fill="#ff5f57" />
-                    <circle cx="176" cy="108" r="5" fill="#febc2e" />
-                    <circle cx="192" cy="108" r="5" fill="#28c840" />
-                    <text x="340" y="113" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif"
-                        font-weight="700">⚡ 快闪记事</text>
-                    <!-- Input area -->
-                    <rect x="160" y="140" width="360" height="80" rx="6" fill="#fafaf8" stroke="#e8e7e4"
+                    <rect x="140" y="90" width="400" height="220" rx="12" fill="var(--bg-white)" stroke="var(--border)"
                         stroke-width="1" />
+                    <!-- Title bar -->
+                    <rect x="140" y="90" width="400" height="36" rx="12" fill="var(--bg-muted)" />
+                    <circle cx="160" cy="108" r="4.5" fill="#ff5f57" />
+                    <circle cx="176" cy="108" r="4.5" fill="#febc2e" />
+                    <circle cx="192" cy="108" r="4.5" fill="#28c840" />
+                    <text x="340" y="113" text-anchor="middle" font-size="11" fill="var(--text-secondary)"
+                        font-family="Inter,sans-serif" font-weight="600">⚡ 快闪记事</text>
+                    <!-- Input area -->
+                    <rect x="160" y="140" width="360" height="80" rx="8" fill="var(--bg-muted)"
+                        stroke="var(--border-light)" stroke-width="1" />
                     <!-- Typing line 1: appears at 32% -->
-                    <text x="172" y="165" font-size="13" fill="#37352f" font-family="sans-serif" opacity="0">
+                    <text x="172" y="165" font-size="13" fill="var(--text)" font-family="Inter,sans-serif" opacity="0">
                         明天下午3点和设计师开会
                         <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.30;0.36;1" dur="3s"
                             repeatCount="indefinite" />
                     </text>
                     <!-- Typing line 2 (tags): appears at 42% -->
-                    <text x="172" y="185" font-size="13" fill="#e16531" font-family="sans-serif" opacity="0">
+                    <text x="172" y="185" font-size="13" fill="var(--primary)" font-family="Inter,sans-serif"
+                        opacity="0">
                         #todo #work
                         <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.40;0.46;1" dur="3s"
                             repeatCount="indefinite" />
                     </text>
                     <!-- Cursor blink -->
-                    <rect x="228" y="175" width="2" height="14" fill="var(--accent)" opacity="0">
+                    <rect x="228" y="175" width="2" height="14" fill="var(--primary)" opacity="0">
                         <animate attributeName="opacity" values="0;0;1;0;1;0;0" keyTimes="0;0.36;0.38;0.41;0.43;0.46;1"
                             dur="3s" repeatCount="indefinite" />
                     </rect>
                     <!-- Save button highlight at 60% -->
-                    <rect x="410" y="238" width="90" height="32" rx="6" fill="#e8e7e4" stroke="#d1d1d1"
+                    <rect x="410" y="238" width="90" height="32" rx="8" fill="var(--bg-muted)" stroke="var(--border)"
                         stroke-width="1">
-                        <animate attributeName="fill" values="#e8e7e4;#e8e7e4;var(--accent);var(--accent);#e8e7e4"
+                        <animate attributeName="fill" values="#e5e7eb;#e5e7eb;var(--primary);var(--primary);#e5e7eb"
                             keyTimes="0;0.58;0.62;0.70;0.74" dur="3s" repeatCount="indefinite" />
                     </rect>
-                    <text x="455" y="259" text-anchor="middle" font-size="12" font-family="sans-serif" fill="#666">
+                    <text x="455" y="259" text-anchor="middle" font-size="11" font-family="Inter,sans-serif"
+                        fill="var(--text-secondary)">
                         ↵ 保存
-                        <animate attributeName="fill" values="#666;#666;#fff;#fff;#666" keyTimes="0;0.58;0.62;0.70;0.74"
-                            dur="3s" repeatCount="indefinite" />
+                        <animate attributeName="fill"
+                            values="var(--text-secondary);var(--text-secondary);#fff;#fff;var(--text-secondary)"
+                            keyTimes="0;0.58;0.62;0.70;0.74" dur="3s" repeatCount="indefinite" />
                     </text>
                 </g>
 
@@ -570,11 +700,12 @@
                         repeatCount="indefinite" />
                     <circle cx="340" cy="200" r="28" fill="#28c840" opacity="0.15" />
                     <text x="340" y="208" text-anchor="middle" font-size="22" fill="#28c840">✓</text>
-                    <text x="340" y="250" text-anchor="middle" font-size="12" fill="#28c840"
-                        font-family="sans-serif">已保存</text>
+                    <text x="340" y="250" text-anchor="middle" font-size="11" fill="#28c840"
+                        font-family="Inter,sans-serif">已保存</text>
                 </g>
 
-                <text x="340" y="390" text-anchor="middle" font-size="12" fill="#999" font-family="sans-serif">Alt+S 唤起
+                <text x="340" y="390" text-anchor="middle" font-size="11" fill="var(--text-muted)"
+                    font-family="Inter,sans-serif">Alt+S 唤起
                     → 输入内容 → 回车保存</text>
             </svg>
         </div>
@@ -603,30 +734,31 @@
     <!-- Features -->
     <section id="features">
         <div class="container">
-            <h2>✨ 核心特性</h2>
+            <p class="section-label">Features</p>
+            <h2>核心特性</h2>
             <div class="features-grid">
                 <div class="feature">
-                    <h3>🔒 本地优先，数据自主</h3>
+                    <h3>本地优先，数据自主</h3>
                     <p>所有笔记存储在你自己的电脑上，隐私完全可控。无数据库，无云端依赖。</p>
                 </div>
                 <div class="feature">
-                    <h3>⚡ 一键快闪记事</h3>
+                    <h3>一键快闪记事</h3>
                     <p>全局快捷键呼出窗口，粘贴即保存，捕捉稍纵即逝的想法。默认 <code>Alt+S</code>。</p>
                 </div>
                 <div class="feature">
-                    <h3>💬 微信碎片收集</h3>
+                    <h3>微信碎片收集</h3>
                     <p>给微信 Bot 发消息，自动转为笔记。消息仅经过微信服务器，不上传第三方。</p>
                 </div>
                 <div class="feature">
-                    <h3>📝 纯 Markdown 文件</h3>
+                    <h3>纯 Markdown 文件</h3>
                     <p>笔记即文件，迁移/同步只需复制文件夹。搜索索引可随时从源文件重建。</p>
                 </div>
                 <div class="feature">
-                    <h3>🔍 全文搜索</h3>
+                    <h3>全文搜索</h3>
                     <p>基于 Bleve 的高性能本地全文检索，毫秒级响应。</p>
                 </div>
                 <div class="feature">
-                    <h3>🖥️ 跨平台</h3>
+                    <h3>跨平台</h3>
                     <p>支持 macOS / Windows / Linux，提供桌面应用与 CLI 两种形态。</p>
                 </div>
             </div>
@@ -636,12 +768,14 @@
     <!-- Quickstart -->
     <section id="quickstart">
         <div class="container">
-            <h2>🚀 快速开始</h2>
+            <p class="section-label">Getting Started</p>
+            <h2>快速开始</h2>
 
-            <h3 style="margin-bottom:20px;">下载预编译版本</h3>
-            <p style="color:var(--text-light);font-size:.94rem;margin-bottom:8px;">
+            <h3 style="margin-bottom:16px;">下载预编译版本</h3>
+            <p style="color:var(--text-secondary);font-size:.86rem;margin-bottom:8px;">
                 从 <a href="https://github.com/libi/tfo/releases"
-                    style="color:var(--link);text-decoration:none;">Releases</a> 下载对应平台的二进制，解压即用：
+                    style="color:var(--text);font-weight:500;text-decoration:underline;text-underline-offset:2px;">Releases</a>
+                下载对应平台的二进制，解压即用：
             </p>
             <table style="margin-bottom:40px;">
                 <tr>
@@ -686,8 +820,8 @@
                 </div>
             </div>
 
-            <h3 style="margin-bottom:16px;">从源码构建</h3>
-            <p style="color:var(--text-light);font-size:.94rem;margin-bottom:10px;">前置条件：Go 1.25+、Node.js 18+</p>
+            <h3 style="margin-bottom:12px;">从源码构建</h3>
+            <p style="color:var(--text-secondary);font-size:.86rem;margin-bottom:10px;">前置条件：Go 1.25+、Node.js 18+</p>
             <pre><code># 开发模式
 cd frontend && npm install && npm run dev   # 终端 1：前端
 go run ./cmd/tfo                             # 终端 2：后端
@@ -703,8 +837,9 @@ go run ./cmd/tfo                             # 终端 2：后端
     <!-- Config -->
     <section id="config">
         <div class="container">
-            <h2>⚙️ 配置</h2>
-            <p style="color:var(--text-light);font-size:.94rem;margin-bottom:20px;">配置文件位于数据目录下的
+            <p class="section-label">Configuration</p>
+            <h2>配置</h2>
+            <p style="color:var(--text-secondary);font-size:.86rem;margin-bottom:20px;">配置文件位于数据目录下的
                 <code>.config.json</code>：
             </p>
             <table>
@@ -742,47 +877,151 @@ go run ./cmd/tfo                             # 终端 2：后端
         </div>
     </section>
 
-    <!-- Architecture -->
+    <!-- No Database -->
     <section id="architecture">
         <div class="container">
-            <h2>🏗️ 架构</h2>
-            <div class="arch-block">┌─────────────┐ ┌──────────────┐
-                │ Desktop App│ │ CLI (tfo) │
-                │ (系统托盘) │ │ (终端运行) │
-                └──────┬──────┘ └──────┬───────┘
-                │ │
-                └───────┬───────────┘
-                ▼
-                ┌─────────────────┐
-                │ HTTP Server │ ← Gin
-                │ (API + SPA) │
-                └────────┬────────┘
-                │
-                ┌────────────┼────────────┐
-                ▼ ▼ ▼
-                ┌──────┐ ┌────────┐ ┌─────────┐
-                │ Note │ │ Search │ │ Channel │
-                │Service│ │(Bleve) │ │(WeChat) │
-                └──┬───┘ └────────┘ └─────────┘
-                ▼
-                ┌──────────┐
-                │ Markdown │ ← 数据文件夹
-                │ Files │
-                └──────────┘</div>
-            <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
-                <div>
-                    <h3>后端</h3>
-                    <p style="color:var(--text-light);font-size:.9rem;">Go — Gin HTTP / Bleve 全文搜索 / fsnotify 文件监听</p>
-                </div>
-                <div>
-                    <h3>前端</h3>
-                    <p style="color:var(--text-light);font-size:.9rem;">Next.js + React + Tailwind CSS，构建后嵌入二进制</p>
-                </div>
-                <div>
-                    <h3>桌面</h3>
-                    <p style="color:var(--text-light);font-size:.9rem;">系统托盘 + 全局快捷键（macOS 使用 Swift 原生壳）</p>
-                </div>
-            </div>
+            <p class="section-label">No Database</p>
+            <h2>无数据库，笔记即文件</h2>
+            <p style="color:var(--text-secondary);font-size:.86rem;margin-bottom:24px;max-width:520px;">
+                没有 SQLite，没有 LevelDB。每条笔记按日期存储为独立 Markdown 文件，打开文件夹就能看到所有数据。迁移只需复制文件夹，索引随时可重建。
+            </p>
+            <svg viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg"
+                style="width:100%;display:block;background:var(--bg-white);border:1px solid var(--border-light);border-radius:12px;">
+                <!-- Folder icon -->
+                <rect x="40" y="30" width="600" height="320" rx="8" fill="var(--bg-muted)" />
+                <rect x="40" y="30" width="160" height="28" rx="8" fill="var(--border)" />
+                <text x="120" y="49" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text-secondary)"
+                    font-family="Inter,sans-serif">📁 ~/notes/</text>
+
+                <!-- Year/Month folder -->
+                <g>
+                    <rect x="70" y="76" width="140" height="28" rx="6" fill="var(--bg-white)"
+                        stroke="var(--border-light)" stroke-width="1" />
+                    <text x="140" y="95" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text)"
+                        font-family="Inter,sans-serif">📁 2026/</text>
+                </g>
+
+                <!-- Month folders row -->
+                <g>
+                    <rect x="100" y="118" width="80" height="24" rx="5" fill="var(--bg-white)"
+                        stroke="var(--border-light)" stroke-width="1" />
+                    <text x="140" y="134" text-anchor="middle" font-size="10" fill="var(--text-secondary)"
+                        font-family="Inter,sans-serif">📁 04/</text>
+                </g>
+
+                <!-- MD files - the main visual -->
+                <!-- File 1 -->
+                <g opacity="0">
+                    <animate attributeName="opacity" values="0;1;1" keyTimes="0;0.06;1" dur="2.5s"
+                        repeatCount="indefinite" />
+                    <rect x="140" y="158" width="220" height="40" rx="8" fill="var(--bg-white)" stroke="var(--border)"
+                        stroke-width="1" />
+                    <rect x="150" y="165" width="16" height="20" rx="2" fill="var(--bg-muted)"
+                        stroke="var(--border-light)" stroke-width="0.5" />
+                    <text x="153" y="179" font-size="7" fill="var(--text-muted)"
+                        font-family="JetBrains Mono,monospace">md</text>
+                    <text x="174" y="176" font-size="12" font-weight="500" fill="var(--text)"
+                        font-family="Inter,sans-serif">2026-04-17.md</text>
+                    <text x="174" y="192" font-size="9" fill="var(--text-muted)" font-family="Inter,sans-serif">今天 · 3
+                        条笔记</text>
+                </g>
+
+                <!-- File 2 -->
+                <g opacity="0">
+                    <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.12;0.18;1" dur="2.5s"
+                        repeatCount="indefinite" />
+                    <rect x="140" y="206" width="220" height="40" rx="8" fill="var(--bg-white)"
+                        stroke="var(--border-light)" stroke-width="1" />
+                    <rect x="150" y="213" width="16" height="20" rx="2" fill="var(--bg-muted)"
+                        stroke="var(--border-light)" stroke-width="0.5" />
+                    <text x="153" y="227" font-size="7" fill="var(--text-muted)"
+                        font-family="JetBrains Mono,monospace">md</text>
+                    <text x="174" y="224" font-size="12" font-weight="500" fill="var(--text)"
+                        font-family="Inter,sans-serif">2026-04-16.md</text>
+                    <text x="174" y="240" font-size="9" fill="var(--text-muted)" font-family="Inter,sans-serif">昨天 · 5
+                        条笔记</text>
+                </g>
+
+                <!-- File 3 -->
+                <g opacity="0">
+                    <animate attributeName="opacity" values="0;0;0;1;1" keyTimes="0;0.24;0.28;0.32;1" dur="2.5s"
+                        repeatCount="indefinite" />
+                    <rect x="140" y="254" width="220" height="40" rx="8" fill="var(--bg-white)"
+                        stroke="var(--border-light)" stroke-width="1" />
+                    <rect x="150" y="261" width="16" height="20" rx="2" fill="var(--bg-muted)"
+                        stroke="var(--border-light)" stroke-width="0.5" />
+                    <text x="153" y="275" font-size="7" fill="var(--text-muted)"
+                        font-family="JetBrains Mono,monospace">md</text>
+                    <text x="174" y="272" font-size="12" font-weight="500" fill="var(--text)"
+                        font-family="Inter,sans-serif">2026-04-15.md</text>
+                    <text x="174" y="288" font-size="9" fill="var(--text-muted)" font-family="Inter,sans-serif">前天 · 2
+                        条笔记</text>
+                </g>
+
+                <!-- File 4 (faded, more files hint) -->
+                <g opacity="0">
+                    <animate attributeName="opacity" values="0;0;0;0.4;0.4" keyTimes="0;0.34;0.38;0.42;1" dur="2.5s"
+                        repeatCount="indefinite" />
+                    <rect x="140" y="302" width="220" height="30" rx="8" fill="var(--bg-white)"
+                        stroke="var(--border-light)" stroke-width="1" opacity="0.6" />
+                    <text x="250" y="321" text-anchor="middle" font-size="10" fill="var(--text-muted)"
+                        font-family="Inter,sans-serif">···</text>
+                </g>
+
+                <!-- Right side: file content preview -->
+                <g opacity="0">
+                    <animate attributeName="opacity" values="0;0;0;0;1;1" keyTimes="0;0.32;0.38;0.42;0.48;1" dur="2.5s"
+                        repeatCount="indefinite" />
+                    <!-- Editor window -->
+                    <rect x="390" y="76" width="230" height="260" rx="8" fill="var(--bg-white)" stroke="var(--border)"
+                        stroke-width="1.5" />
+                    <!-- Title bar -->
+                    <rect x="390" y="76" width="230" height="30" rx="8" fill="var(--bg-muted)" />
+                    <circle cx="406" cy="91" r="4" fill="#ff5f57" />
+                    <circle cx="420" cy="91" r="4" fill="#febc2e" />
+                    <circle cx="434" cy="91" r="4" fill="#28c840" />
+                    <text x="505" y="95" text-anchor="middle" font-size="10" fill="var(--text-muted)"
+                        font-family="JetBrains Mono,monospace">2026-04-17.md</text>
+
+                    <!-- Markdown content -->
+                    <text x="406" y="126" font-size="13" font-weight="700" fill="var(--text)"
+                        font-family="Inter,sans-serif">📅 2026-04-17</text>
+                    <line x1="406" y1="134" x2="604" y2="134" stroke="var(--border-light)" stroke-width="1" />
+
+                    <!-- Entry 1 -->
+                    <text x="406" y="154" font-size="9" fill="var(--text-muted)"
+                        font-family="JetBrains Mono,monospace">09:32</text>
+                    <line x1="406" y1="158" x2="604" y2="158" stroke="var(--border-light)" stroke-width="0.5" />
+                    <text x="406" y="172" font-size="11" fill="var(--text)"
+                        font-family="Inter,sans-serif">今天的会议纪要</text>
+                    <line x1="406" y1="182" x2="604" y2="182" stroke="var(--border-light)" stroke-width="0.5" />
+
+                    <!-- Entry 2 -->
+                    <text x="406" y="198" font-size="9" fill="var(--text-muted)"
+                        font-family="JetBrains Mono,monospace">14:15</text>
+                    <line x1="406" y1="202" x2="604" y2="202" stroke="var(--border-light)" stroke-width="0.5" />
+                    <text x="406" y="216" font-size="11" fill="var(--primary)"
+                        font-family="Inter,sans-serif">#idea</text>
+                    <text x="440" y="216" font-size="11" fill="var(--text)" font-family="Inter,sans-serif">新功能想法</text>
+                    <line x1="406" y1="226" x2="604" y2="226" stroke="var(--border-light)" stroke-width="0.5" />
+
+                    <!-- Entry 3 -->
+                    <text x="406" y="242" font-size="9" fill="var(--text-muted)"
+                        font-family="JetBrains Mono,monospace">20:41</text>
+                    <line x1="406" y1="246" x2="604" y2="246" stroke="var(--border-light)" stroke-width="0.5" />
+                    <text x="406" y="260" font-size="11" fill="var(--text)" font-family="Inter,sans-serif">明天买牛奶
+                        🥛</text>
+
+                    <!-- Arrow connecting file to preview -->
+                    <line x1="360" y1="178" x2="386" y2="178" stroke="var(--border)" stroke-width="1.5"
+                        stroke-dasharray="4,3" />
+                    <polygon points="388,178 382,174 382,182" fill="var(--border)" />
+                </g>
+
+                <!-- Bottom labels -->
+                <text x="340" y="370" text-anchor="middle" font-size="11" fill="var(--text-muted)"
+                    font-family="Inter,sans-serif">一天一个文件 · 每条笔记带时间戳 · 纯文本可读 · 复制即迁移</text>
+            </svg>
         </div>
     </section>
 

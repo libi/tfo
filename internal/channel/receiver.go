@@ -6,7 +6,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 )
 
 // NoteCreator 笔记创建接口（解耦对 note.Service 的依赖）
@@ -136,15 +135,9 @@ func formatMessageContent(msg *IncomingMessage) string {
 	sb.WriteString(strings.TrimSpace(msg.Content))
 
 	// 附加来源标签
-	tag := "#" + msg.ChannelType + "收集"
+	tag := "#" + msg.ChannelType
 	sb.WriteString("\n\n")
 	sb.WriteString(tag)
-
-	// 附加时间戳（如果有）
-	if !msg.Timestamp.IsZero() {
-		sb.WriteString(" ")
-		sb.WriteString(msg.Timestamp.Format(time.RFC3339))
-	}
 
 	return sb.String()
 }
