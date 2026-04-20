@@ -10,6 +10,8 @@ interface MainContentProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onAddFragment: (content: string) => Promise<void>;
+  onDeleteFragment?: (id: string) => Promise<void>;
+  onUpdateFragment?: (id: string, content: string) => Promise<void>;
   quickCaptureShortcut: string;
   saveShortcut: string;
   isLoading?: boolean;
@@ -56,7 +58,7 @@ function LoadMoreSentinel({ isLoadingMore, onLoadMore }: { isLoadingMore?: boole
   );
 }
 
-export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, quickCaptureShortcut, saveShortcut, isLoading, hasMore, isLoadingMore, onLoadMore }: MainContentProps) {
+export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragment, onDeleteFragment, onUpdateFragment, quickCaptureShortcut, saveShortcut, isLoading, hasMore, isLoadingMore, onLoadMore }: MainContentProps) {
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -137,7 +139,7 @@ export function MainContent({ fragments, searchQuery, onSearchChange, onAddFragm
               </div>
             ) : (
               fragments.map(fragment => (
-                <FragmentCard key={fragment.id} fragment={fragment} />
+                <FragmentCard key={fragment.id} fragment={fragment} onDelete={onDeleteFragment} onUpdate={onUpdateFragment} />
               ))
             )}
             {!isLoading && hasMore && (

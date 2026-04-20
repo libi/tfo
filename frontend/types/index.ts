@@ -5,4 +5,5 @@ export interface Fragment {
   date: string;
   tags: string[];
   highlights?: { start: number; end: number }[];
+  filePath?: string;
 }

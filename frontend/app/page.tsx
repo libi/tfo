@@ -150,6 +150,32 @@ export default function Home() {
     }
   };
 
+  const handleDeleteFragment = async (id: string) => {
+    try {
+      await api.deleteNote(id);
+      setFragments(prev => prev.filter(f => f.id !== id));
+      refreshTags();
+    } catch (err) {
+      console.error('Failed to delete note:', err);
+      throw err;
+    }
+  };
+
+  const handleUpdateFragment = async (id: string, content: string) => {
+    try {
+      const updated = await api.updateNote(id, content);
+      setFragments(prev => prev.map(f =>
+        f.id === id
+          ? { ...f, title: updated.title, content: updated.content, tags: updated.tags || [] }
+          : f
+      ));
+      refreshTags();
+    } catch (err) {
+      console.error('Failed to update note:', err);
+      throw err;
+    }
+  };
+
   const loadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
@@ -216,6 +242,8 @@ export default function Home() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onAddFragment={handleAddFragment}
+        onDeleteFragment={handleDeleteFragment}
+        onUpdateFragment={handleUpdateFragment}
         quickCaptureShortcut={quickCaptureShortcut}
         saveShortcut={saveShortcut}
         isLoading={isLoading}
